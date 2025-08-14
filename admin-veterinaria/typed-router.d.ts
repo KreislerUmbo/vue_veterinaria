@@ -20,13 +20,21 @@ declare module 'vue-router/auto-routes' {
   export interface RouteNamedMap {
     'root': RouteRecordInfo<'root', '/', Record<never, never>, Record<never, never>>,
     '$error': RouteRecordInfo<'$error', '/:error(.*)', { error: ParamValue<true> }, { error: ParamValue<false> }>,
+    'appointment-add': RouteRecordInfo<'appointment-add', '/appointment/add', Record<never, never>, Record<never, never>>,
+    'clientes-add': RouteRecordInfo<'clientes-add', '/clientes/add', Record<never, never>, Record<never, never>>,
+    'clientes-list': RouteRecordInfo<'clientes-list', '/clientes/list', Record<never, never>, Record<never, never>>,
     'dashboard': RouteRecordInfo<'dashboard', '/dashboard', Record<never, never>, Record<never, never>>,
     'login': RouteRecordInfo<'login', '/login', Record<never, never>, Record<never, never>>,
     'not-authorized': RouteRecordInfo<'not-authorized', '/not-authorized', Record<never, never>, Record<never, never>>,
+    'pet-add': RouteRecordInfo<'pet-add', '/pet/add', Record<never, never>, Record<never, never>>,
+    'pet-edit-id': RouteRecordInfo<'pet-edit-id', '/pet/edit/:id', { id: ParamValue<true> }, { id: ParamValue<false> }>,
+    'pet-list': RouteRecordInfo<'pet-list', '/pet/list', Record<never, never>, Record<never, never>>,
     'products': RouteRecordInfo<'products', '/products', Record<never, never>, Record<never, never>>,
     'roles-permisos': RouteRecordInfo<'roles-permisos', '/roles-permisos', Record<never, never>, Record<never, never>>,
     'second-page': RouteRecordInfo<'second-page', '/second-page', Record<never, never>, Record<never, never>>,
     'staffs': RouteRecordInfo<'staffs', '/staffs', Record<never, never>, Record<never, never>>,
     'veterinarie-add': RouteRecordInfo<'veterinarie-add', '/veterinarie/add', Record<never, never>, Record<never, never>>,
+    'veterinarie-edit-id': RouteRecordInfo<'veterinarie-edit-id', '/veterinarie/edit/:id', { id: ParamValue<true> }, { id: ParamValue<false> }>,
+    'veterinarie-list': RouteRecordInfo<'veterinarie-list', '/veterinarie/list', Record<never, never>, Record<never, never>>,
   }
 }

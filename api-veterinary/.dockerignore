@@ -1,0 +1,33 @@
+# ⚠️ Archivos que no se deben copiar al contenedor
+
+# Entorno
+.env
+.env.*
+
+# Symlinks y cachés
+public/storage
+storage/*.key
+
+# Node (por si usas Laravel con Vite)
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Composer
+vendor
+composer.lock
+
+# Logs
+*.log
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+
+# IDEs y sistemas operativos
+*.DS_Store
+.idea
+.vscode
+*.swp
+*.swo
+Thumbs.db

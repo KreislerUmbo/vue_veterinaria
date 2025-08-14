@@ -28,4 +28,8 @@ class VeterinarieScheduleDay extends Model
     public function veterinarie(){
         return $this->belongsTo(User::class,"veterinarie_id");
     }
+
+    public function schedule_joins(){
+        return  $this->hasMany(VeterinarieScheduleJoin::class);
+    }
 }

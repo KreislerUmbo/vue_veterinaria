@@ -1,0 +1,16 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: [
+    'build',
+    '-t', 'gcr.io/cloud-run-umbo/veterinaria-app',
+    '-f', 'docker/Dockerfile.cloudrun',
+    '--build-arg', 'NODE_ENV=production',
+    '.'
+  ]
+  id: 'build-image'
+  
+timeout: 1800s
+images:
+- 'gcr.io/cloud-run-umbo/veterinaria-app'
+options:
+  machineType: 'E2_HIGHCPU_8'

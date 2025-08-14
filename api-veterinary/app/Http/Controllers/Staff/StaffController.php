@@ -21,7 +21,11 @@ class StaffController extends Controller
     {
         $search = $request->get("search");
 
-        $users = User::where(DB::raw("users.name || ' ' || COALESCE(users.surname,'') || ' ' || users.n_document"), "ilike", "%" . $search . "%")->orderBy("id", "desc")->get();
+        $users = User::where(DB::raw("users.name || ' ' || COALESCE(users.surname,'') || ' ' || users.n_document"), "ilike", "%" . $search . "%")
+        ->whereHas("roles",function($q){
+            $q->where("name","not ilike","%veterinario%");
+        })
+        ->orderBy("id", "desc")->get();
         return response()->json([
             "users" => UserCollection::make($users),
             "roles" => Role::where("name", "not ilike", "%veterinario%")->get()->map(function ($role) {

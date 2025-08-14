@@ -13,6 +13,8 @@ import { VNodeRenderer } from '@layouts/components/VNodeRenderer'
 import { themeConfig } from '@themeConfig'
 import { nextTick, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { $fetch } from 'ofetch'
+
 
 const form = ref({
   email: 'laravest@gmail.com',
@@ -38,6 +40,7 @@ const login = async () => {
     success_exist.value = null;
 
     const resp = await $api('/auth/login', {
+   //const resp = await $fetch('/api/auth/login',{
       method: 'POST',
       body: {
         email: form.value.email,

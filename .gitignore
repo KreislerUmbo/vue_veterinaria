@@ -1,0 +1,53 @@
+# ----------------------------------------
+# General
+# ----------------------------------------
+.DS_Store
+Thumbs.db
+*.log
+*.local
+
+# ----------------------------------------
+# Laravel
+# ----------------------------------------
+/vendor/                    # Se instala con composer dentro del contenedor
+/node_modules/              # Se instala con pnpm dentro del contenedor
+/public/storage
+/storage/*.key
+.env
+.env.*                      # .env.local, .env.production, etc.
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+
+# Laravel IDE helper
+/_ide_helper.php
+/_ide_helper_models.php
+
+# Laravel Telescope
+storage/telescope
+
+# Laravel Nova
+nova-components
+
+# Laravel Mix / Vite
+/public/hot
+/public/mix-manifest.json
+/public/build/
+
+# ----------------------------------------
+# Frontend (Vue 3 + PNPM)
+# ----------------------------------------
+node_modules/
+dist/                       # Resultado del build de Vite, se genera dentro del contenedor
+pnpm-debug.log*
+yarn-debug.log*
+npm-debug.log*
+
+.vite/
+.vitepress/
+
+# ----------------------------------------
+# Docker (si usas volúmenes)
+# ----------------------------------------
+docker-compose.override.yml
+*.pid

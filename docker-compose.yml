@@ -1,0 +1,36 @@
+services:
+  vue:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.vue
+    ports:
+      - "80:80"  # Accedes desde http://localhost
+    depends_on:
+      - laravel
+    networks:
+      - app-network
+
+  laravel:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.laravel
+    working_dir: /var/www/api-veterinary
+    volumes:
+      - ./api-veterinary:/var/www/api-veterinary
+    environment:
+      APP_ENV: production
+      APP_DEBUG: false
+      APP_URL: http://localhost
+      DB_CONNECTION: pgsql
+      DB_HOST: host.docker.internal  # Accede al PostgreSQL local
+      DB_PORT: 5432
+      DB_DATABASE: db_veterinary    # <-- cambia si es otro nombre
+      DB_USERNAME: postgres          # <-- cambia si usas otro usuario
+      DB_PASSWORD: 123          # <-- cambia tu contraseña real
+
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

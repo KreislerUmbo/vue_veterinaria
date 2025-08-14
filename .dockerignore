@@ -1,8 +1,50 @@
-/node_modules
-/vendor
-/storage/logs/*
-/.env
-/.git
-/docker-compose.yml
-/.idea
-/.vscode
+# ⚠️ Archivos que no se deben copiar al contenedor
+
+# Entorno
+.env
+.env.*
+
+# Symlinks y cachés
+public/storage
+storage/*.key
+
+# Node (por si usas Laravel con Vite)
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Composer
+vendor
+composer.lock
+
+# Logs
+*.log
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+
+# IDEs y sistemas operativos
+*.DS_Store
+.idea
+.vscode
+*.swp
+*.swo
+Thumbs.db
+
+#carpeta fuera del py
+admin-full-version
+admin-veterinaria/node_modules
+api-veterinary/vendor
+**/storage
+
+.git
+.dockerignore
+Dockerfile
+.env
+node_modules
+vendor
+storage
+tests
+*.log
+

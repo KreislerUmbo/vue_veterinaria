@@ -1,0 +1,49 @@
+FROM php:8.2-fpm-alpine
+
+# Variables de entorno
+ENV APP_DIR=/var/www/api-veterinary
+
+# Directorio de trabajo
+WORKDIR ${APP_DIR}
+
+# Instalar paquetes del sistema
+RUN apk add --no-cache \
+    nginx \
+    supervisor \
+    postgresql-dev \
+    libzip-dev \
+    oniguruma-dev \
+    libpng-dev \
+    libxml2-dev \
+    zip \
+    unzip \
+    curl \
+    git \
+    bash \
+    && docker-php-ext-install pdo pdo_pgsql zip mbstring
+
+# Copiar archivos del proyecto
+COPY ./api-veterinary ${APP_DIR}
+
+# Instalar Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+RUN composer install --no-dev --optimize-autoloader --no-interaction
+
+# Permisos necesarios
+RUN chown -R www-data:www-data ${APP_DIR}/storage ${APP_DIR}/bootstrap/cache \
+    && chmod -R 775 ${APP_DIR}/storage ${APP_DIR}/bootstrap/cache
+
+# Copiar configuración de Nginx y Supervisor
+COPY docker/nginx-backend.conf /etc/nginx/nginx.conf
+COPY docker/supervisord.conf /etc/supervisord.conf
+
+# Healthcheck para Cloud Run
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/api/health || exit 1
+
+# Exponer puerto 8080 para Cloud Run
+EXPOSE 8080
+
+# Comando de arranque
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]

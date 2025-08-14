@@ -31,7 +31,7 @@ export default [
       },
       {
         title: 'Listado',
-        to: 'second-page',
+        to: 'veterinarie-list',
         permission: 'list_veterinary',
         icon: { icon: 'ri-radio-button-line' },
       },
@@ -43,13 +43,13 @@ export default [
     children: [
       {
         title: 'Registrar',
-        to: 'second-page',
+        to: 'pet-add',
         permission: 'register_pet',
         icon: { icon: 'ri-radio-button-line' },
       },
       {
         title: 'Listado',
-        to: 'second-page',
+        to: 'pet-list',
         permission: 'list_pet',
         icon: { icon: 'ri-radio-button-line' },
       },
@@ -62,7 +62,7 @@ export default [
     children: [
       {
         title: 'Registrar',
-        to: 'second-page',
+        to: 'appointment-add',
         permission: 'register_appointment',
         icon: { icon: 'ri-computer-line' },
       },
@@ -127,6 +127,63 @@ export default [
     to: { name: 'second-page' },
     icon: { icon: 'ri-draft-line' },
     permission: 'show_medical_records',
+  },
+
+  { heading: 'Rotary', permissions: ['register_client','register_concepts', 'list_clients',  'show_medical_records'] },
+  
+  {
+    title: 'Recibos',
+    icon: { icon: 'ri-list-check-3' },
+    children: [
+      {
+        title: 'Registrar',
+        to: 'second-page',
+        permission: 'register_concepts',
+        icon: { icon: 'ri-computer-line' },
+      },
+      {
+        title: 'Listado',
+        to: 'second-page',
+        permission: 'list_appointment',
+        icon: { icon: 'ri-bar-chart-line' },
+      },
+    ],
+  },
+  {
+    title: 'Conceptos',
+    icon: { icon: 'ri-list-check-3' },
+    children: [
+      {
+        title: 'Registrar',
+        to: 'second-page',
+        permission: 'register_concepts',
+        icon: { icon: 'ri-computer-line' },
+      },
+      {
+        title: 'Listado',
+        to: 'second-page',
+        permission: 'list_appointment',
+        icon: { icon: 'ri-bar-chart-line' },
+      },
+    ],
+  },
+  {
+    title: 'Clientes',
+    icon: { icon: 'ri-list-check-3' },
+    children: [
+      {
+        title: 'Registrar',
+        to: 'clientes-add',
+        permission: 'register_client',
+        icon: { icon: 'ri-computer-line' },
+      },
+      {
+        title: 'Listado',
+        to: 'clientes-list',
+        permission: 'list_clients',
+        icon: { icon: 'ri-bar-chart-line' },
+      },
+    ],
   },
 
   // {

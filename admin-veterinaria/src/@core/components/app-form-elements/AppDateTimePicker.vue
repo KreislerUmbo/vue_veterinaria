@@ -14,6 +14,7 @@ import {
 
 import { filterInputAttrs } from 'vuetify/lib/util/helpers'
 import { useConfigStore } from '@core/stores/config'
+import { Spanish } from "flatpickr/dist/l10n/es";
 
 const props = defineProps({
   autofocus: Boolean,
@@ -74,6 +75,9 @@ const isInlinePicker = ref(false)
 if (compAttrs.config && compAttrs.config.inline) {
   isInlinePicker.value = compAttrs.config.inline
   Object.assign(compAttrs, { altInputClass: 'inlinePicker' })
+}
+if(!compAttrs.config){
+  compAttrs.config = {locale: Spanish};
 }
 compAttrs.config = {
   ...compAttrs.config,

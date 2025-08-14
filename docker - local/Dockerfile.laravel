@@ -1,0 +1,29 @@
+FROM php:8.2-fpm-alpine
+
+WORKDIR /var/www/api-veterinary
+
+RUN apk add --no-cache \
+    postgresql-dev \
+    libpq-dev \
+    libzip-dev \
+    unzip \
+    curl \
+    git \
+    oniguruma-dev \
+    autoconf \
+    build-base \
+    pkgconf \
+    && docker-php-ext-install pdo pdo_pgsql zip mbstring \
+    && apk del autoconf build-base postgresql-dev
+
+COPY ./api-veterinary /var/www/api-veterinary
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+RUN composer install --no-dev --optimize-autoloader --no-interaction
+
+RUN chown -R www-data:www-data /var/www/api-veterinary
+
+EXPOSE 9000
+
+CMD ["php-fpm"]

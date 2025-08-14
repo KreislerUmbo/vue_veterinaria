@@ -3,9 +3,16 @@
 namespace App\Http\Controllers\Veterinarie;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Veterinarie\VeterinarieCollection;
+use App\Http\Resources\Veterinarie\VeterinarieResource;
+use App\Models\User;
+use App\Models\Veterinarie\VeterinarieScheduleDay;
 use App\Models\Veterinarie\VeterinarieScheduleHour;
+use App\Models\Veterinarie\VeterinarieScheduleJoin;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 
 class VeterinarieController extends Controller
@@ -13,23 +20,32 @@ class VeterinarieController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
+        $search = $request->get("search");
+
+        $veterinaries = User::where(DB::raw("users.name || ' ' || COALESCE(users.surname,'') || ' ' || users.n_document"), "ilike", "%" . $search . "%")
+            ->whereHas("roles", function ($q) {
+                $q->where("name", "ilike", "%veterinario%");
+            })
+            ->orderBy("id", "desc")->get();
+        return response()->json([
+            "veterinaries" => VeterinarieCollection::make($veterinaries),
+        ]);
     }
 
 
     public function config()
     {
         $roles = Role::where("name", "ilike", "%veterinario%")->get();
-        $schedule_hours = VeterinarieScheduleHour::all();
+        $schedule_hours = VeterinarieScheduleHour::orderBy('id', 'asc')->get();
 
         $schedule_hours_group = collect([]);
 
         foreach ($schedule_hours->groupBy("hour") as $key => $schedule_hour) {
             $schedule_hours_group->push([
                 "hour" => $key,
-                "hour_format" => Carbon::parse(date("Y-m-d") . ' ' . $key.':00:00')->format("h:i A"),
+                "hour_format" => Carbon::parse(date("Y-m-d") . ' ' . $key . ':00:00')->format("h:i A"),
                 "segments_time" => $schedule_hour->map(function ($schedule_h) {
                     return [
                         "id" => $schedule_h->id,
@@ -53,7 +69,50 @@ class VeterinarieController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $is_user_exists = User::where("email", $request->email)->first();
+        if ($is_user_exists) {
+            return response()->json([
+                "message" => 403,
+                "message_text" => "El Veterinario ya Existe",
+            ]);
+        }
+
+        if ($request->hasFile("imagen")) {
+            $path = Storage::putFile("veterinaries", $request->file("imagen"));
+            // $request->$request->add(["avatar" => $path]);
+            $request->merge(["avatar" => $path]);
+        }
+        if ($request->password) {
+            $request->merge(["password" => bcrypt($request->password)]);
+        }
+        if ($request->birthday) {
+            $request->merge(['birthday' => Carbon::parse($request->birthday)]);
+        }
+
+
+        $veterinarie =  User::create($request->all());
+        $role = Role::findOrFail($request->role_id);
+        $veterinarie->assignRole($role);
+
+        $schedule_hour_veterinarie = collect(json_decode($request->schedule_hours_veterinrie, true));
+        foreach ($schedule_hour_veterinarie->groupBy("day") as $key => $schedule_hour_vet) {
+            // dd($key, $schedule_hour_vet);
+            $schedule_day = VeterinarieScheduleDay::create([
+                "veterinarie_id" => $veterinarie->id,
+                "day" => $key
+            ]);
+            foreach ($schedule_hour_vet as $key => $schedule_hour) {
+                VeterinarieScheduleJoin::create([
+                    "veterinarie_schedule_day_id" => $schedule_day->id,
+                    "veterinarie_schedule_hour_id" => $schedule_hour["segment_time_id"],
+                ]);
+            }
+        }
+        //  dd($days_job);
+
+        return response()->json([
+            "message" => 200,
+        ]);
     }
 
     /**
@@ -61,7 +120,10 @@ class VeterinarieController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $veterinarie = User::findOrfail($id);
+        return response()->json([
+            "veterinarie" => VeterinarieResource::make($veterinarie),
+        ]);
     }
 
     /**
@@ -69,7 +131,67 @@ class VeterinarieController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $is_user_exists = User::where("email", $request->email)->where("id", "<>", $id)->first();
+        if ($is_user_exists) {
+            return response()->json([
+                "message" => 403,
+                "message_text" => "El acceso ya Existe",
+            ]);
+        }
+
+        $veterinarie =  User::findOrFail($id);
+        if ($request->hasFile("imagen")) {
+
+            // Si ya existe una imagen de avatar, eliminarla del almacenamiento
+            if ($veterinarie->avatar && Storage::exists($veterinarie->avatar)) {
+                Storage::delete($veterinarie->avatar);
+            }
+            // Subir la nueva imagen
+            $path = Storage::putFile("veterinaries", $request->file('imagen'));
+            // Agregar la ruta de la imagen al request
+            $request->merge(["avatar" => $path]);
+        }
+        // Si el usuario cambia la contraseña
+        if ($request->password) {
+            $request->merge(["password" => bcrypt($request->password)]);
+        }
+
+        $veterinarie->update($request->all());
+        // Manejo de roles si se cambia el rol
+        if ($request->role_id && $request->role_id != $veterinarie->role_id) {
+            $role_old = Role::findOrFail($request->role_id);
+            $veterinarie->removeRole($role_old);
+
+            $role_new = Role::findOrFail($request->role_id);
+            $veterinarie->assignRole($role_new);
+        }
+
+        foreach ($veterinarie->schedule_days as  $schedule_day) {
+           
+            foreach ($schedule_day->schedule_joins as $schedule_join) {
+                $schedule_join->delete();
+            }
+            $schedule_day->delete();
+        }
+
+        $schedule_hour_veterinarie = collect(json_decode($request->schedule_hours_veterinrie, true));
+        foreach ($schedule_hour_veterinarie->groupBy("day") as $key => $schedule_hour_vet) {
+            //  dd($key, $schedule_hour_vet);
+            $schedule_day = VeterinarieScheduleDay::create([
+                "veterinarie_id" => $veterinarie->id,
+                "day" => $key
+            ]);
+            foreach ($schedule_hour_vet as $key => $schedule_hour) {
+                VeterinarieScheduleJoin::create([
+                    "veterinarie_schedule_day_id" => $schedule_day->id,
+                    "veterinarie_schedule_hour_id" => $schedule_hour["segment_time_id"],
+                ]);
+            }
+        }
+
+        return response()->json([
+            "message" => 200,
+        ]);
     }
 
     /**
@@ -77,6 +199,16 @@ class VeterinarieController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $veterinarie = User::findOrFail($id);
+        if ($veterinarie->avatar && Storage::exists($veterinarie->avatar)) {
+            Storage::delete($veterinarie->avatar);
+        }
+
+        $veterinarie->delete();
+        return response()->json(
+            [
+                "message" => 200,
+            ]
+        );
     }
 }
