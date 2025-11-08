@@ -64,13 +64,13 @@ export default [
         title: 'Registrar',
         to: 'appointment-add',
         permission: 'register_appointment',
-        icon: { icon: 'ri-computer-line' },
+        icon: { icon: 'ri-radio-button-line' },
       },
       {
         title: 'Listado',
-        to: 'second-page',
+        to: 'appointment-list',
         permission: 'list_appointment',
-        icon: { icon: 'ri-bar-chart-line' },
+        icon: { icon: 'ri-radio-button-line' },
       },
     ],
   },
@@ -78,13 +78,7 @@ export default [
     title: 'Calendario',
     icon: { icon: 'ri-calendar-line' },
     permission: 'calendar',
-    to: 'second-page',
-  },
-  {
-    title: 'Pagos',
-    icon: { icon: 'ri-coins-line' },
-    permission: 'show_payment',
-    to: 'second-page',
+    to: 'medical-record-calendar',
   },
   {
     title: 'Vacunas',
@@ -92,13 +86,13 @@ export default [
     children: [
       {
         title: 'Registrar',
-        to: 'second-page',
+        to: 'vaccination-add',
         permission: 'register_vaccionation',
         icon: { icon: 'ri-computer-line' },
       },
       {
         title: 'Listado',
-        to: 'second-page',
+        to: 'vaccination-list',
         permission: 'list_vaccionation',
         icon: { icon: 'ri-bar-chart-line' },
       },
@@ -123,14 +117,20 @@ export default [
     ],
   },
   {
+    title: 'Pagos',
+    icon: { icon: 'ri-coins-line' },
+    permission: 'show_payment',
+    to: 'second-page',
+  },
+  {
     title: 'Historial Medico',
     to: { name: 'second-page' },
     icon: { icon: 'ri-draft-line' },
     permission: 'show_medical_records',
   },
 
-  { heading: 'Rotary', permissions: ['register_client','register_concepts', 'list_clients',  'show_medical_records'] },
-  
+  { heading: 'Rotary', permissions: ['register_client', 'register_concepts', 'list_clients', 'show_medical_records'] },
+
   {
     title: 'Recibos',
     icon: { icon: 'ri-list-check-3' },

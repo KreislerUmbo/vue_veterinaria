@@ -1,20 +1,45 @@
 <?php
 
-namespace App\Http\Resources\Appointment;
+namespace App\Http\Resources\Vaccination;
 
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class AppointmentResource extends JsonResource
+class VaccinationResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
      *
      * @return array<string, mixed>
      */
-    public function toArray(Request $request): array
+   public function toArray(Request $request): array 
     {
+        $schedules = $this->resource->schedules->map(function ($schedule) {//map es para recorrer los horarios de la vacunacion
+            return [
+                "id" => $schedule->id,
+                "veterinarie_schedule_hour_id" => $schedule->veterinarie_schedule_hour_id,
+                "hour" => $schedule->schedule_hour->hour,
+                "schedule_hour" => [
+                    "hour_start" => $schedule->schedule_hour->hour_start,
+                    "hour_end" => $schedule->schedule_hour->hour_end,
+                    "hour" => $schedule->schedule_hour->hour,
+                    "hour_start_format" => Carbon::parse(date("Y-m-d") . ' ' . $schedule->schedule_hour->hour_start)->format('h:i A'),
+                    "hour_end_format" => Carbon::parse(date("Y-m-d") . ' ' . $schedule->schedule_hour->hour_end)->format('h:i A'),
+                ],
+            ];
+        });
+        $schedule_for_hour=collect([]);
+        // agrupar los horarios por hora
+        foreach($schedules->groupBy("hour") as $key=> $segment_times){//  foreach($schedules->groupBy("hour")  recorre los horarios agrupados por hora, el key es la hora y el segment_times son los horarios que pertenecen a esa hora
+            $is_complete=$segment_times->count()==2 ? true:false;
+            $schedule_for_hour->push([
+                "hour"=>$key,
+                "hour_format"=>Carbon::parse(date("Y-m-d") . ' ' . $key.':00:00')->format('h:i A'),//formatear la hora
+                "segments_time"=>$segment_times,//los horarios que pertenecen a esa hora
+                "is_complete"=>$is_complete,
+            ]);
+        }
         return [
             "id" => $this->resource->id,
             "veterinarie_id" => $this->resource->veterinarie_id,
@@ -39,10 +64,13 @@ class AppointmentResource extends JsonResource
                 ],
             ],
             "day" => $this->resource->day,
-            "date_appointment" => Carbon::parse($this->resource->date_appointment)->format('Y-m-d'),
+            "vaccionation_date" => Carbon::parse($this->resource->vaccionation_date)->format('Y-m-d'),
             "reason" => $this->resource->reason,
             "reprogramar" => $this->resource->reprogramar,
-            "state" => $this->resource->state,
+            "state" => $this->resource->state,//1 pendiente, 3 atendido, 2 cancelado
+            "outside" => $this->resource->outside,
+            "vaccine_names" => $this->resource->vaccine_names,
+            "nex_due_date" => Carbon::parse($this->resource->nex_due_date)->format('Y-m-d'),
             "user_id" => $this->resource->user_id,
             "user" => [
                 "full_name" => $this->resource->user->name . ' ' . $this->resource->user->surname,
@@ -74,7 +102,9 @@ class AppointmentResource extends JsonResource
                         "hour_end_format" => Carbon::parse(date("Y-m-d") . ' ' . $schedule->schedule_hour->hour_end)->format('h:i A'),
                     ],
                 ];
-            })->sortBy("veterinarie_schedule_hour_id")->values()->all(),
+            }),
+            "schedule_for_hour"=> $schedule_for_hour->sortBy("hour")->values()->all(),// ordenar los horarios por hora
+            "schedules"=>$schedules->sortBy("veterinarie_schedule_hour_id")->values()->all(),//sortBy es para ordenar el array por el id del horario
         ];
     }
 }

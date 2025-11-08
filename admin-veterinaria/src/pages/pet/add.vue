@@ -36,7 +36,7 @@ const form = ref({
     emergency_contact: null,
 });
 
-const species = ref(['Perro', 'Gato', 'Hámster', 'Loro', 'Tortuga', 'Vaca', 'Caballo', 'Cuy', 'Toro', 'Conejo']);
+const species = ref(['Perro', 'Gato', 'Hámster', 'Loro', 'Tortuga', 'Vaca', 'Caballo', 'Cuy', 'Toro', 'Conejo','Ave','Pez','Otro']);
 const FILE_AVATAR = ref(null);
 const IMAGEN_PREVIZUALIZA = ref(null);
 

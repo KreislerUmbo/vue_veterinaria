@@ -7,7 +7,8 @@ import { VBtn, VCard, VCardText, VCol, VRow, VSelect, VTextarea, VTextField } fr
 const warning = ref(null);
 const error_exists = ref(null);
 const success = ref(null);
-const router = useRouter();
+const route = useRoute('appointment-edit-id');//obtiene el id de la ruta
+const router = useRouter();// para redireccionar a otra pagina
 
 
 const form = ref({
@@ -16,6 +17,7 @@ const form = ref({
     amount: 0,
     method_payment: 'Efectivo',
     amount_add: 0,
+    state: 1, // estado de la cita 1: pendiente, 2: cancelado, 3: atendido
 })
 
 const method_payments = ref([
@@ -31,9 +33,11 @@ const segment_time_veterinaries = ref([]);
 const selected_segment_times = ref([]);
 const veterinarie_id = ref(null);
 const reason = ref(null);
+const appointment_selected = ref(null);
+
 const error_exist = ref(false);
 
-const filter = async () => {
+const filter = async () => {// funcion para filtrar la disponibilidad de los veterinarios
     try {
         if (!form.value.date_appointment) {
             warning.value = "Debe seleccionar fecha para buscar disponibilidad";
@@ -66,14 +70,14 @@ const selectedSegmentHour = (veternarie_time, segment_time_group) => { //del bot
 }
 
 const reset = () => {
-    form.value.date_appointment= null;
-    form.value.time= null;  
-        veternarie_time_availability.value= [];
-        segment_time_veterinaries.value= [];
-        selected_segment_times.value= [];
-    form.value.amount= 0; 
-    form.value.method_payment= 'Efectivo';
-    form.value.amount_add= 0;
+    form.value.date_appointment = null;
+    form.value.time = null;
+    veternarie_time_availability.value = [];
+    segment_time_veterinaries.value = [];
+    selected_segment_times.value = [];
+    form.value.amount = 0;
+    form.value.method_payment = 'Efectivo';
+    form.value.amount_add = 0;
 }
 const addSelectedSegmentTime = (veternarie_time, segment_time) => {// al hacer check en el horario
     let INDEX = selected_segment_times.value.findIndex((item => item.veterinarie_id == veternarie_time.id && item.segment_time_id == segment_time.veterinarie_schedule_hour_id));
@@ -98,77 +102,61 @@ const addSelectedSegmentTime = (veternarie_time, segment_time) => {// al hacer c
     });
 
 }
-
-
-const fieldsCean = () => {
+const limpiarCampos = () => {
     form.value.date_appointment = null;
     form.value.time = null;
-    form.value.amount = 0;
-    form.value.method_payment = 'Efectivo';
-    form.value.amount_add = 0;
-    select_pet.value = null;
+    veternarie_time_availability.value = [];
     segment_time_veterinaries.value = [];
     selected_segment_times.value = [];
-    veternarie_time_availability.value = [];
-    reason.value = null;
 }
 
-const store = async () => {
+// funcion para actualizar la cita medica
+const update = async () => {
     try {
+        success.value = null;
         warning.value = null;
         error_exists.value = null;
 
-        if (!form.value.date_appointment) {
-            warning.value = "Debe seleccionar fecha para guardar la cita";
-            return;
-        }
-        if(!reason.value){
-            warning.value = "Debe ingresar el motivo de la cita";
-            return;
+        if (form.value.date_appointment) {
+            if (selected_segment_times.value.length == 0) {
+                warning.value = "si cambia la fecha de la cita, debe buscar y seleccionar al menos un horario de un veterinario";
+                return;
+            }
         }
 
         if (!select_pet.value) {
             warning.value = "Debe seleccionar una mascota";
             return;
         }
-        if (segment_time_veterinaries.value.length == 0) {
-            warning.value = "Debe seleccionar al menos un horario de un veterinario";
-            return;
-        }
+        /*  if (segment_time_veterinaries.value.length == 0) {
+              warning.value = "Debe seleccionar al menos un horario de un veterinario";
+              return;
+          }*/
         if (parseInt(form.value.amount <= 0)) {
             warning.value = "Debe ingresar un costo total del servicio";
             return;
         }
-        if (parseInt(form.value.amount_add < 0)) {
-            warning.value = "El adelanto de pago no puede ser negativo";
-            return;
-        }
-        if (parseInt(form.value.amount_add) > parseInt(form.value.amount)) {
-            warning.value = "El adelanto de pago no puede ser mayor al costo total del servicio";
-            return;
-        }
-        let STATE_PAY = 1;// pago pendiente
-        if (form.value.amount > form.value.amount_add) {
-            STATE_PAY = 2; //adelanto de pago
-        } if (form.value.amount == form.value.amount_add) {
-            STATE_PAY = 3; //pago total
-        }
+
         let data = {                            // datos para enviar al backend
             veterinarie_id: veterinarie_id.value,
             pet_id: select_pet.value.id,
             reason: reason.value,
-            date_appointment: form.value.date_appointment,
+            //date_appointment: form.value.date_appointment,
             //time: form.value.time,
             amount: form.value.amount,
-            state_pay: STATE_PAY,
-            method_payment: form.value.method_payment,
-            adelanto: form.value.amount_add,
+            // state_pay: STATE_PAY,
+            // method_payment: form.value.method_payment,
+            // adelanto: form.value.amount_add,
             selected_segment_times: selected_segment_times.value,
+            state: form.value.state,
             // segment_times: segment_time_veterinaries.value
         }
+        if (form.value.date_appointment) {
+            data.date_appointment = form.value.date_appointment;
+        }
 
-        const resp = await $api('/appointments', {  // envia los datos al backend para guardar la cita
-            method: 'POST',
+        const resp = await $api('/appointments/' + route.params.id, {  // envia los datos al backend para guardar la cita
+            method: 'PATCH',
             body: data,
             onResponseError({ response }) {
                 console.log(response);
@@ -176,12 +164,20 @@ const store = async () => {
             }
         })
         console.log(resp);
-        success.value = "Se guardó correctamente la cita médica";
+        if (resp.message == 403) {
+            warning.value = resp.message_text;
+            return;
+        } 
+        else {
+            success.value = "Se actualizó correctamente la cita médica";
+            show(); // muestra los datos actualizados de la cita medica
+        }
+
         setTimeout(() => {
             success.value = null;
             warning.value = null;
             error_exists.value = null;
-            fieldsCean();
+            limpiarCampos();
         }, 2000);
         //router.push({ name: 'appointments' });
     } catch (error) {
@@ -190,12 +186,12 @@ const store = async () => {
 }
 
 //codigo para la busqueda de mascotas
-const loading = ref(false)
+const loading = ref(false)// para el loading del autocomplete
 const search = ref()
-const select_pet = ref(null)
+const select_pet = ref(null)// para obtener el objeto seleccionado del autocomplete
 
 
-const items = ref([])
+const items = ref([])// para almacenar los resultados de la busqueda
 
 const querySelections = async (query) => {                      //funcion para buscar las mascotas
     loading.value = true
@@ -224,11 +220,40 @@ watch(search, query => {// vigila el cambio en el input de busqueda
     //query && query !== select.value && querySelections(query)
 })
 //fin de la busqueda de macota
+
+
+const show = async () => {// funcion spara mostrar los datos de la cita medica
+    try {
+        const resp = await $api("/appointments/" + route.params.id, {
+            method: 'GET',
+            onResponseError({ response }) {
+                console.log(response);
+                error_exist.value = response._data.error;
+            }
+        })
+        console.log(resp);
+        appointment_selected.value = resp.appointment;// almacena los datos de la cita medica en la variable appointment_selected
+        reason.value = appointment_selected.value.reason;
+        form.value.amount = Number(appointment_selected.value.amount);
+        form.value.state = appointment_selected.value.state;
+        select_pet.value = appointment_selected.value.pet;// asigna la mascota seleccionada. NO olvidar que appointment_selected.value.pet; viene del AppointmentResource
+        veterinarie_id.value = appointment_selected.value.veterinarie_id;// el veterinarie_id viene del AppointmentResource y lo asigna a la variable veterinarie_id
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+onMounted(() => {
+    show();
+});
+
+
 definePage({
     meta: {
-        permissions: ['register_appointment'],
+        permissions: ['edit_appointment'],
     },
 });
+
 </script>
 
 <template>
@@ -236,7 +261,7 @@ definePage({
         <VCardText class="pa-5">
             <div class="mb-1">
                 <h4 class="text-h4 text-center mb-1">
-                 📅 AGREGAR CITAS MEDICAS
+                    📅 MODIFICAR CITAS MEDICAS : #{{ route.params.id }}
                 </h4>
             </div>
         </VCardText>
@@ -270,7 +295,7 @@ definePage({
             <strong>{{ warning }}</strong>
         </VAlert>
         <VAlert type="error" class="mt-3" v-if="error_exist">
-            <strong>En el servidor hubo un error al momento de guardar los datos</strong>
+            <strong>{{ message_text }}</strong>
         </VAlert>
         <VAlert type="success" class="mt-3" v-if="success">
             <strong>{{ success }}</strong>
@@ -310,7 +335,7 @@ definePage({
                                                     @click="selectedSegmentHour(veternarie_time, segment_time_group)">
                                                 </VBtn>
                                                 {{ segment_time_group.hour_format }}({{
-                                                    segment_time_group.count_availability }})<!-- cuenta los horarios disponibles-->
+                                                    segment_time_group.count_availability }})
                                             </li>
                                         </ul>
                                     </td>
@@ -343,6 +368,77 @@ definePage({
                     <!--density="compact"-->
                 </VCol>
             </VRow>
+        </VCard>
+
+        <VCard title="🧭 Horario de la Cita:" v-if="appointment_selected" class="pa-4 mt-4">
+            <VRow>
+                <VCol cols="10">
+                    <VTable>
+                        <thead>
+                            <tr>
+                                <th>
+                                    <!-- Veterinarios -->
+                                    <span class="label-title">Estado de la cita:</span>
+                                </th>
+                                <th class="text-uppercase">
+                                    Veterinarios
+                                </th>
+                                <th>
+                                    <!-- Horarios de Atención -->
+                                    <span class="label-title">Fecha de la Cita:</span>
+                                </th>
+
+                                <th class="text-uppercase">
+                                    Horarios de Atención
+                                </th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <VSelect :items="[
+                                        {
+                                            name: 'Pendiente',
+                                            id: 1
+                                        },
+                                        {
+                                            name: 'Cancelado',
+                                            id: 2
+                                        },
+                                        {
+                                            name: 'Atendido',
+                                            id: 3
+                                        }
+                                    ]" v-model="form.state" item-title="name" item-value="id" :disabled="appointment_selected.state==2 || appointment_selected.state==3 ? true:false"
+                                        placeholder="Select Estado Cita" eager />
+                                </td>
+                                <td>
+                                    {{ appointment_selected.veterinarie.full_name }}
+                                </td>
+                                <td>
+                                    {{ appointment_selected.date_appointment }}
+                                </td>
+                                <td>
+                                    <ul>
+                                        <template v-for="(schedule, index) in appointment_selected.schedules"
+                                            :key="index"><!--v-for para recorrer los veterinarios con disponibilidad-->
+                                            <li>
+                                                <label for="" style="font-weight: bold;">
+                                                    {{ schedule.schedule_hour.hour_start_format + ' - '
+                                                        + schedule.schedule_hour.hour_end_format }}
+                                                </label>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                </td>
+                            </tr>
+
+                        </tbody>
+                    </VTable>
+                </VCol>
+            </VRow>
+
         </VCard>
 
         <VCard title="🐶 Paciente:" class="pa-4 mt-2">
@@ -398,27 +494,17 @@ definePage({
         <VCard title="💰 Pagos:" class="pa-4 mt-2">
             <VRow>
                 <VCol cols="4">
-                    <VTextField v-model="form.amount" label="Consto total Servicio" prefix="S/" type="number"
+                    <VTextField v-model.number="form.amount" label="Consto total Servicio" prefix="S/" type="number"
                         placeholder="Ingrese el valor total del servicio" /><!--density="compact"-->
-                </VCol>
-            </VRow>
-            <VRow>
-                <VCol cols="4">
-                    <VSelect v-model="form.method_payment" :items="method_payments" label="Metodo de Pago"
-                        item-title="name" item-value="id" placeholder="Seleccione Metodo de Pago" />
-                </VCol>
-
-                <VCol cols="4">
-                    <VTextField v-model="form.amount_add" label="Adelanto de pago" type="number"
-                        placeholder="Ingrese Monto ejm: 100" />
                 </VCol>
             </VRow>
         </VCard>
         <VCardText class="pa-5 text-center mt-2 py-0">
-            <VBtn color="primary" class="mx-1" prepend-icon="ri-save-2-line" @click="store()">
-                Guardar
+            <VBtn color="primary" class="mx-1" prepend-icon="ri-save-2-line" @click="update()">
+                Editar Cita
             </VBtn>
-            <VBtn color="error" class="mx-1" prepend-icon="ri-close-line"  @click="router.push({ name: 'appointment-list' })">
+            <VBtn color="error" class="mx-1" prepend-icon="ri-close-line"
+                @click="router.push({ name: 'appointment-list' })">
                 Listado
             </VBtn>
         </VCardText>

@@ -31,7 +31,7 @@ class MedicalRecord extends Model
     }
     public function setUpdatedAtAttribute($value)
     {
-        date_default_timezone_get("America/Lima");
+        date_default_timezone_set("America/Lima");
         $this->attributes["updated_at"] = Carbon::now();
     }
     public function pet()
