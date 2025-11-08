@@ -33,7 +33,7 @@ nova-components
 /public/hot
 /public/mix-manifest.json
 /public/build/
-.pnpm-store
+
 # ----------------------------------------
 # Frontend (Vue 3 + PNPM)
 # ----------------------------------------
@@ -42,7 +42,8 @@ dist/                       # Resultado del build de Vite, se genera dentro del 
 pnpm-debug.log*
 yarn-debug.log*
 npm-debug.log*
-
+.pnpm-store
+\.pnpm-store
 .vite/
 .vitepress/
 
