@@ -33,7 +33,7 @@ nova-components
 /public/hot
 /public/mix-manifest.json
 /public/build/
-
+.pnpm-store
 # ----------------------------------------
 # Frontend (Vue 3 + PNPM)
 # ----------------------------------------
