@@ -2,6 +2,9 @@
 
 namespace App\Models\Pets;
 
+use App\Models\Appointment\Appointment;
+use App\Models\Surgerie\Surgerie;
+use App\Models\Vaccination\Vaccination;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +14,7 @@ class Pet extends Model
 {
     use HasFactory;
     use SoftDeletes;
-    
+
     protected $fillable = [
         'name',
         'specie',
@@ -41,5 +44,18 @@ class Pet extends Model
     public function owner() // mascota relacionado con un  dueño, 
     {
         return $this->belongsTo(Owner::class, 'owner_id');
+    }
+
+    public function appointments()
+    {
+        return $this->hasMany(Appointment::class, "pet_id");
+    }
+    public function vaccinations()
+    {
+        return $this->hasMany(Vaccination::class, "pet_id");
+    }
+    public function surgeries()
+    {
+        return $this->hasMany(Surgerie::class, "pet_id");
     }
 }

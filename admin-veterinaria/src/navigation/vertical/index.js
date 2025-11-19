@@ -99,18 +99,18 @@ export default [
     ],
   },
   {
-    title: 'Procedimientos quirúrgicos',
+    title: 'Cirugias',
     icon: { icon: 'ri-microscope-line' },
     children: [
       {
         title: 'Registrar',
-        to: 'second-page',
+        to: 'surgerie-add',
         permission: 'register_surgeries',
         icon: { icon: 'ri-computer-line' },
       },
       {
         title: 'Listado',
-        to: 'second-page',
+        to: 'surgerie-list',
         permission: 'list_surgeries',
         icon: { icon: 'ri-bar-chart-line' },
       },
@@ -120,11 +120,11 @@ export default [
     title: 'Pagos',
     icon: { icon: 'ri-coins-line' },
     permission: 'show_payment',
-    to: 'second-page',
+    to: 'payments-list',
   },
   {
     title: 'Historial Medico',
-    to: { name: 'second-page' },
+    to: { name: 'medical-record' },
     icon: { icon: 'ri-draft-line' },
     permission: 'show_medical_records',
   },

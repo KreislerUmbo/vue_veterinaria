@@ -5,22 +5,21 @@ const props = defineProps({
         type: Boolean,
         required: true,
     },
-    vaccinationSelected: { //vaccinationSelected viene del boton eliminar que esta en list.vue
+    surgerieSelected: {//viene de list.vue la cual contiene el objeto de la cita seleccionada
         type: Object,
         required: true,
     }
 })
 
-const emit = defineEmits(['update:isDialogVisible', 'deleteVaccionation'])//para referescar la pagina, deleteAppointment viene del boton eliminar que esta en list.vue
+const emit = defineEmits(['update:isDialogVisible', 'deleteSurgerie'])//para referescar la pagina, deleteAppointment viene del boton eliminar que esta en list.vue
 
-const warning = ref(null);
 const error_exist = ref(null);
 const success = ref(null);
-const vaccinationSelected = ref(null);
+const surgerie_selected = ref(null);
 
 const deleted = async () => {
     try {
-        const resp = await $api('/vaccinations/' + props.vaccinationSelected.id, {
+        const resp = await $api('/surgeries/' +surgerie_selected.value.id, {
             method: 'DELETE',
             onResponseError({ response }) {
                 console.log(response);
@@ -30,11 +29,11 @@ const deleted = async () => {
         })
         console.log(resp);
         if (resp.message == 403) {
-            error_exist.value = "No se puede eliminar esta cita vacuna porque ya ha sido atendida.";
+            error_exist.value = "No se puede eliminar esta cirugia porque ya ha sido atendida.";
             return;
         } else {
-            success.value = "La vacuna se ha eliminado con éxito.";
-            emit('deleteVaccionation', props.vaccinationSelected);//para referescar la pagina  y props sirve para obtener el objeto de la cita seleccionada
+            success.value = "La cirugia se ha eliminado con éxito.";
+            emit('deleteSurgerie', surgerie_selected.value);//para referescar la pagina  y props sirve para obtener el objeto de la cita seleccionada
 
             // Cierra el modal después de un momento para que el usuario vea el mensaje de éxito.
             setTimeout(() => {
@@ -48,8 +47,8 @@ const deleted = async () => {
     }
 }
 onMounted(() => {
-vaccinationSelected.value=props.vaccinationSelected;
-console.log(vaccinationSelected.value);
+surgerie_selected.value=props.surgerieSelected;
+console.log(surgerie_selected.value);
 });
 </script>
 
@@ -62,12 +61,12 @@ console.log(vaccinationSelected.value);
 
             <VCardText class="pa-5">
                 <div class="mb-6">
-                    <h4 class="text-h4 text-center mb-2" v-if="props.vaccinationSelected">
-                        Eliminar la vacunacion para: {{ props.vaccinationSelected.name }}
+                    <h4 class="text-h4 text-center mb-2" v-if="surgerie_selected">
+                        Eliminar la cirugía para: {{ surgerie_selected.id }}
                     </h4>
                 </div>
-                <p v-if="props.vaccinationSelected">
-                    ¿Estás seguro de que deseas eliminar la cita de la vacunacion para "{{ props.vaccinationSelected.pet.name }}"? Esta
+                <p v-if="surgerie_selected">
+                    ¿Estás seguro de que deseas eliminar la cirugía para "{{ surgerie_selected.pet.name }}"? Esta
                     acción
                     no se puede deshacer.
                 </p>

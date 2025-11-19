@@ -44,7 +44,7 @@ export const useCalendarStore = defineStore('calendar', {
       return await $api(`/medical-records/update_aux/${event.id}`, {
         method: 'PUT',
         body: {// enviando solo los campos que se pueden actualizar desde el calendario
-          state: event.extendedProps.state,
+          state: event.extendedProps.state,//
           notes: event.extendedProps.notes,
         },
       })

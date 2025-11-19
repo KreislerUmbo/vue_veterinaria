@@ -1,10 +1,10 @@
 <script setup>
 import AppDateTimePicker from '@/@core/components/app-form-elements/AppDateTimePicker.vue';
 import { $api } from '@/utils/api';
-import { onMounted } from 'vue';
+import { inline } from '@floating-ui/dom';
+import { set } from '@vueuse/core';
 import { VBtn, VCard, VCardText, VCol, VRadio, VRadioGroup, VRow, VSelect, VTextarea, VTextField } from 'vuetify/components';
 
-const route = useRoute('vaccination-edit-id'); // obtiene el id de la ruta
 const warning = ref(null);
 const error_exists = ref(null);
 const success = ref(null);
@@ -12,12 +12,12 @@ const router = useRouter();
 
 
 const form = ref({
-    vaccionation_date: null,
+    surgerie_date: null,
     time: null,
     amount: 0,
     method_payment: 'Efectivo',
+    surgerie_type: null,
     amount_add: 0,
-    state: null,
 })
 
 const method_payments = ref([
@@ -28,28 +28,33 @@ const method_payments = ref([
     { id: 5, name: 'Trasferencia' },
     { id: 6, name: 'Paypal' },
 ])
+const surgerie_types = ref([ // listado de tipos de cirugias
+     'ESTERELIZACIÓN' ,
+     'CASTRACIÓN' ,
+     'TRAUMATÓLOGICAS' ,
+     'OCULARES' ,
+     'ONCOLOGICAS' ,
+     'OTROS' ,
+])
 const veternarie_time_availability = ref([]);
 const segment_time_veterinaries = ref([]);
 const selected_segment_times = ref([]);
 const segment_time_hour_veterinaries = ref([]);// para los checkbox de los grupos de horarios
 const veterinarie_id = ref(null);
-const reason = ref(null);
-const vaccine_names = ref(null);
-const nex_due_date = ref(null);
-const outside = ref('0');// si la vacuna se aplica dentro o fuera de la clinica, por defecto dentro de la clinica con valor 0
+const medical_notes = ref(null);
+const outcome = ref(null);
+const outside = ref('0');
 const error_exist = ref(false);
-const vaccination_selected = ref(null); // para almacenar los datos de la vacunacion seleccionada
-const state = ref(null); // para almacenar el estado de la vacunacion seleccionada
 
 //funcion para filtrar la disponibilidad de los veterinarios
 const filter = async () => {
     try {
-        if (!form.value.vaccionation_date) {
+        if (!form.value.surgerie_date) {
             warning.value = "Debe seleccionar fecha para buscar disponibilidad";
             return;
         }
         let data = {
-            vaccionation_date: form.value.vaccionation_date,
+            surgerie_date: form.value.surgerie_date,
             hour: form.value.time,
         }
         const resp = await $api('/appointments/filter-availability', {
@@ -91,18 +96,17 @@ const selectedSegmentHour = (veternarie_time, segment_time_group) => { //del bot
 
 //funcion para reiniciar los filtros 
 const reset = () => {
-    form.value.vaccionation_date = null;
+    form.value.surgerie_date = null;
     form.value.time = null;
     veternarie_time_availability.value = [];
     segment_time_veterinaries.value = [];
     selected_segment_times.value = [];
+    form.value.amount = 0;
+    form.value.method_payment = 'Efectivo';
+    form.value.surgerie_type = null;
+    form.value.amount_add = 0;
     error_exist.value = false;
     warning.value = null;
-    segment_time_hour_veterinaries.value = [];clear
-   // hour_start_format = null;
-   // hour_end_format = null;
-    //segment_time_hour_veterinaries.value = [];
-    //schedule_for_hour.value = [];
 }
 
 //funcion para agregar o quitar los horarios seleccionados
@@ -128,6 +132,22 @@ const addSelectedSegmentTime = (veternarie_time, segment_time) => {
         return item.indexOf(veternarie_time.id + "-") != -1;
     });
 
+}
+
+//funcion para limpiar los campos del formulario
+const fieldsCean = () => {
+    form.value.surgerie_date = null;
+    form.value.time = null;
+    form.value.amount = 0;
+    form.value.method_payment = 'Efectivo';
+    form.value.amount_add = 0;
+    select_pet.value = null;
+    segment_time_veterinaries.value = [];
+    selected_segment_times.value = [];
+    veternarie_time_availability.value = [];
+    medical_notes.value = null;
+    outcome.value = null;
+    outside.value = '1';
 }
 
 const addSelectedSegmentTimeHour = (veternarie_time, segment_time_group) => {
@@ -166,14 +186,17 @@ const addSelectedSegmentTimeHour = (veternarie_time, segment_time_group) => {
 
 
 
-const update = async () => {
+const store = async () => {
     try {
         warning.value = null;
-        success.value = null;
         error_exists.value = null;
 
-        if (!reason.value) {
-            warning.value = "Debe ingresar el motivo de la cita";
+        if (!form.value.surgerie_date) {
+            warning.value = "Debe seleccionar fecha para continuar";
+            return;
+        }
+        if (!medical_notes.value) {
+            warning.value = "Debe ingresar las notas médicas";
             return;
         }
 
@@ -181,36 +204,49 @@ const update = async () => {
             warning.value = "Debe seleccionar una mascota";
             return;
         }
-        if (!vaccine_names.value) {
-            warning.value = "Debe ingresar el nombre de la vacuna";
-            return;
-        }
-        if (!nex_due_date.value) {
-            warning.value = "Debe ingresar la fecha de la próxima vacuna";
-            return;
-        }
 
+        if (segment_time_veterinaries.value.length == 0) {
+            warning.value = "Debe seleccionar al menos un horario de un veterinario";
+            return;
+        }
         if (parseInt(form.value.amount <= 0)) {
             warning.value = "Debe ingresar un costo total del servicio";
             return;
         }
-
+        if (parseInt(form.value.amount_add < 0)) {
+            warning.value = "El adelanto de pago no puede ser negativo";
+            return;
+        }
+        if (parseInt(form.value.amount_add) > parseInt(form.value.amount)) {
+            warning.value = "El adelanto de pago no puede ser mayor al costo total del servicio";
+            return;
+        }
+        let STATE_PAY = 1;// pago pendiente
+        if (form.value.amount > form.value.amount_add) {
+            STATE_PAY = 2; //adelanto de pago
+        } if (form.value.amount == form.value.amount_add) {
+            STATE_PAY = 3; //pago total
+        }
         let data = {                            // datos para enviar al backend
             veterinarie_id: veterinarie_id.value,
             pet_id: select_pet.value.id,
-            reason: reason.value,
-            vaccionation_date: form.value.vaccionation_date,
+            medical_notes: medical_notes.value,
+            surgerie_date: form.value.surgerie_date,
+            //time: form.value.time,
             amount: form.value.amount,
+            state_pay: STATE_PAY,
             method_payment: form.value.method_payment,
+            adelanto: form.value.amount_add,
             selected_segment_times: selected_segment_times.value,
-            vaccine_names: vaccine_names.value,
-            nex_due_date: nex_due_date.value,
+            surgerie_type: form.value.surgerie_type,
+            outcome: outcome.value,
             outside: outside.value,
-            state: form.value.state,
+
+
         }
 
-        const resp = await $api('/vaccinations/' + route.params.id, {  /// usa el id de la ruta para editar la vacunacion
-            method: 'PATCH',
+        const resp = await $api('/surgeries', {  // envia los datos al backend para guardar 
+            method: 'POST',
             body: data,
             onResponseError({ response }) {
                 console.log(response);
@@ -218,17 +254,14 @@ const update = async () => {
             }
         })
         console.log(resp);
-        if (resp.message == 403) {
-            warning.value = resp.message_text;
-        } else {
-
-            success.value = "Se editó correctamente la cita de vacunación";
-            reset(); // reinicia los filtros
-            show(); // llama a la funcion show para actualizar los datos de la vacunacion
-
-        }
-
-
+        success.value = "Se guardó correctamente orden de cirugía";
+        setTimeout(() => {
+            success.value = null;
+            warning.value = null;
+            error_exists.value = null;
+            fieldsCean();
+        }, 2000);
+        //router.push({ name: 'appointments' });
     } catch (error) {
         console.log(error);
     }
@@ -271,44 +304,10 @@ watch(search, query => {// vigila el cambio en el input de busqueda
 })
 //fin de la busqueda de macota
 
-const show = async () => {
-    try {
-        const resp = await $api('/vaccinations/' + route.params.id, {  /// usa el id de la ruta para obtener los datos de la vacunacion
-            method: 'GET',
-            onResponseError({ response }) {
-                console.log(response);
-                error_exists.value = response._data.error;
-            }
-        })
-        console.log(resp);
-        // asigna los datos obtenidos del backend a las variables
-        vaccination_selected.value = resp.vaccionation;
-        veterinarie_id.value = vaccination_selected.value.veterinarie_id;
-       // form.value.vaccionation_date = vaccination_selected.value.vaccionation_date;
-        form.value.amount = vaccination_selected.value.amount;
-        reason.value = vaccination_selected.value.reason;
-        vaccine_names.value = vaccination_selected.value.vaccine_names;
-        nex_due_date.value = vaccination_selected.value.nex_due_date;
-        outside.value = vaccination_selected.value.outside.toString();
-        select_pet.value = vaccination_selected.value.pet;
-      //  state.value = vaccination_selected.value.state;// asigna el estado de la vacunacion seleccionada
-        form.value.state = vaccination_selected.value.state;// asigna el estado de la vacunacion al formulario en horario de atencion
-
-
-    } catch (error) {
-        console.log(error);
-    }
-}
-
-onMounted(() => {
-    show(); // llama a la funcion show al montar el componente
-})
-
-
 // DEFINE LOS PERMISOS DE LA PAGINA
 definePage({
     meta: {
-        permissions: ['edit_vaccionation'],
+        permissions: ['register_surgerie'],
     },
 });
 </script>
@@ -318,14 +317,14 @@ definePage({
         <VCardText class="pa-5">
             <div class="mb-1">
                 <h4 class="text-h4 text-center mb-1">
-                    📅 EDITAR DATOS DE LA VACUNACIÓN {{ route.params.id }} 🐎🐄🐖🦃
+                    👨‍⚕ 🚢🚨📢REGISTRO DE PROCEDIMIENTO QUIRURGICO 🐎🐄🐖🦃
                 </h4>
             </div>
         </VCardText>
         <VCard title="🔍Busqueda:" class="pa-4">
             <VRow>
                 <VCol cols="4">
-                    <AppDateTimePicker v-model="form.vaccionation_date" label="Fecha de la Vacuna"
+                    <AppDateTimePicker v-model="form.surgerie_date" label="Fecha de la Vacuna"
                         placeholder="Select Fecha" :config="{
                             minDate: 'today', disable: [
                                 (date) => {
@@ -337,7 +336,7 @@ definePage({
 
                 </VCol>
                 <VCol cols="4">
-                    <AppDateTimePicker v-model="form.time" label="Hora de la Vacuna" placeholder="Select time"
+                    <AppDateTimePicker v-model="form.time" label="Hora de la cirugia" placeholder="Select time"
                         :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i' }" />
                 </VCol>
                 <VCol cols="4">
@@ -353,7 +352,7 @@ definePage({
             <strong>{{ warning }}</strong>
         </VAlert>
         <VAlert type="error" class="mt-3" v-if="error_exist">
-            <strong>{{ error_exists }}</strong>
+            <strong>En el servidor hubo un error al momento de guardar los datos</strong>
         </VAlert>
         <VAlert type="success" class="mt-3" v-if="success">
             <strong>{{ success }}</strong>
@@ -429,85 +428,7 @@ definePage({
                 </VCol>
             </VRow>
         </VCard>
-        <VCard title="🧭 Horario de Atencion:" v-if="vaccination_selected" class="pa-4 mt-4">
-            <VRow>
-                <VCol cols="10">
-                    <VTable>
-                        <thead>
-                            <tr>
-                                <th>
-                                    <!-- Veterinarios -->
-                                    <span class="label-title">Estado de la cita:</span>
-                                </th>
-                                <th class="text-uppercase">
-                                    Veterinarios
-                                </th>
-                                <th>
-                                    <!-- Horarios de Atención -->
-                                    <span class="label-title">Fecha de la Cita:</span>
-                                </th>
 
-                                <th class="text-uppercase">
-                                    Horarios de Atención
-                                </th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                            <tr>
-                                <td>
-                                    <VSelect :items="[
-                                        {
-                                            name: 'Pendiente',
-                                            id: 1
-                                        },
-                                        {
-                                            name: 'Cancelado',
-                                            id: 2
-                                        },
-                                        {
-                                            name: 'Atendido',
-                                            id: 3
-                                        }
-                                    ]" v-model="form.state" item-title="name" item-value="id"
-                                        :disabled="vaccination_selected.state == 2 || vaccination_selected.state == 3 ? true : false"
-                                        placeholder="Select Estado Vacuna" eager />
-                                </td>
-                                <td>
-                                    {{ vaccination_selected.veterinarie.full_name }}
-                                </td>
-                                <td>
-                                    {{ vaccination_selected.vaccionation_date }}
-                                </td>
-                                <td>
-                                    <ul>
-                                        <template v-for="(for_hour, index) in vaccination_selected.schedule_for_hour"
-                                            :key="index">
-                                            <template v-if="!for_hour.is_complete">
-                                                <li v-for="(schedule, index2) in for_hour.segments_time" :key="index2">
-                                                    <label for="" style="font-weight: bold; color: red;">
-                                                        {{ schedule.schedule_hour.hour_start_format + ' - '
-                                                            + schedule.schedule_hour.hour_end_format
-                                                        }}
-                                                    </label>
-                                                </li>
-                                            </template>
-                                            <li v-else>
-                                                <label for="" style="font-weight: bold;">
-                                                    {{ for_hour.hour_format  }}
-                                                </label>
-                                            </li>
-                                        </template>
-                                    </ul>
-                                </td>
-                            </tr>
-
-                        </tbody>
-                    </VTable>
-                </VCol>
-            </VRow>
-
-        </VCard>
         <VCard title="🐶 Paciente:" class="pa-4 mt-2">
             <VRow>
                 <VCol cols="4">
@@ -559,30 +480,28 @@ definePage({
             </VRow>
             <VRow>
                 <VCol cols="5">
-                    <VTextarea v-model="reason" label="Motivo de la Vacuna" placeholder="Ingrese el motivo de la vacuna"
-                        rows="3" />
+                    <VTextarea v-model="medical_notes" label="Nota Médica"
+                        placeholder="Ingrese la nota medica de la cirugía" rows="3" />
                     <!--density="compact"-->
                 </VCol>
                 <VCol cols="5">
-                    <VTextarea v-model="vaccine_names" label="Nombre de la Vacuna:"
-                        placeholder="Ingrese nombre de la vacuna" rows="3" />
+                    <VTextarea v-model="outcome" label="Resultado de la cirugia:"
+                        placeholder="Ingrese el resultado de la cirugia" rows="3" />
                     <!--density="compact"-->
                 </VCol>
                 <VCol cols="2">
-                    <AppDateTimePicker v-model="nex_due_date" label="Fecha de la próxima vacuna:"
-                        placeholder="Select Fecha" :config="{
-                            minDate: 'today', disable: [
-                                (date) => {
-                                    // Deshabilita sábados (6) y domingos (0)
-                                    return date.getDay() === 0 || date.getDay() === 6;
-                                },
-                            ]
-                        }" />
+                    <VSelect 
+                    v-model="form.surgerie_type" 
+                    :items="surgerie_types" 
+                    label="Tipo de Cirugía" 
+                    placeholder="Selecc. Tipo"
+                    eager
+                     />
                 </VCol>
                 <VCol cols="12">
                     <VRadioGroup v-model="outside" inline>
-                        <VRadio label="¿La vacuna se aplicará dentro de la clínica?" value="0" />
-                        <VRadio label="¿La vacuna se aplicará fuera de la clínica?" value="1" />
+                        <VRadio label="¿La cirugía se aplicará dentro de la clínica?" value="0" />
+                        <VRadio label="¿La cirugía se aplicará fuera de la clínica?" value="1" />
                     </VRadioGroup>
                 </VCol>
             </VRow>
@@ -591,18 +510,32 @@ definePage({
         <VCard title="💰 Costos y Pagos:" class="pa-4 mt-2">
             <VRow>
                 <VCol cols="4">
-                    <VTextField v-model="form.amount" label="Costo Total de la Vacuna" prefix="S/" type="number"
+                    <VTextField v-model="form.amount" label="Costo Total de la cirugía" prefix="S/" type="number"
                         placeholder="Ingrese el valor total del servicio" /><!--density="compact"-->
+                </VCol>
+            </VRow>
+            <h3 class="text-h6 mt-4 mb-2">
+                Adelantos de Pago:
+            </h3>
+            <VRow class="mt-2">
+                <VCol cols="4">
+                    <VSelect v-model="form.method_payment" :items="method_payments" label="Metodo de Pago"
+                        item-title="name" item-value="id" placeholder="Seleccione Metodo de Pago" />
+                </VCol>
+
+                <VCol cols="4">
+                    <VTextField v-model="form.amount_add" label="Adelanto de pago" type="number"
+                        placeholder="Ingrese Monto ejm: 100" />
                 </VCol>
             </VRow>
         </VCard>
         <VCardText class="pa-5 text-center mt-2 py-0">
-            <VBtn color="primary" class="mx-1" prepend-icon="ri-save-2-line" @click="update()">
-                Editar Vacunación
+            <VBtn color="primary" class="mx-1" prepend-icon="ri-save-2-line" @click="store()">
+                Guardar
             </VBtn>
             <VBtn color="error" class="mx-1" prepend-icon="ri-close-line"
-                @click="router.push({ name: 'vaccination-list' })">
-                Listado Vacunación
+                @click="router.push({ name: 'surgerie-list' })">
+                Listado
             </VBtn>
         </VCardText>
 

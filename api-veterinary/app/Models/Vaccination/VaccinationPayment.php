@@ -15,11 +15,11 @@ class VaccinationPayment extends Model
     // campos asignables
     protected $fillable = [
         "vaccination_id",
-        "method_payment", // metodo de pago
-        "amount", // monto pagado
-        //   "payment_date",
-        //   "note",
-        // "user_id",
+        "method_payment",
+        "date_payment",
+        "amount",
+        "notes",
+        "user_id",
     ];
 
     // relacion con la tabla de vacunaciones

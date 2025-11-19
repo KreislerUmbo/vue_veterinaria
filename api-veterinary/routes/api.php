@@ -4,12 +4,15 @@ use App\Http\Controllers\Appointment\AppointmentController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Cliente\ClienteController;
-use App\Http\Controllers\MedicalRecordController;
+use App\Http\Controllers\MedicalRecord\MedicalRecordController;
+use App\Http\Controllers\MedicalRecord\PaymentController;
 use App\Http\Controllers\Pets\PetsController;
 use App\Http\Controllers\Rol\RoleController;
 use App\Http\Controllers\Staff\StaffController;
+use App\Http\Controllers\Surgerie\SurgerieController;
 use App\Http\Controllers\Vaccination\VaccinationController;
 use App\Http\Controllers\Veterinarie\VeterinarieController;
+use App\Models\MedicalRecord;
 
 Route::group([
     // 'middleware' => 'api',
@@ -44,15 +47,24 @@ Route::group([
     //rutas para los registros medicos
     Route::get("medical-records/calendar", [MedicalRecordController::class, "calendar"]);// calendario de registros medicos
     Route::put("medical-records/update_aux/{id}", [MedicalRecordController::class, "update_aux"]);// actualizar estado de cita y notas del registro medico que esta en el calendario
+    Route::put("medical-records/pet", [MedicalRecordController::class, "index"]);
 
     //rutas para las vacunaciones
-    Route::post("vaccinations/index", [VaccinationController::class, "index"]);
-    Route::resource("vaccinations", VaccinationController::class);
+    Route::post("vaccinations/index", [VaccinationController::class, "index"]); 
+    Route::resource("vaccinations", VaccinationController::class);// rutas para las vacunaciones para el CRUD
     
-    
+    //rutas para las cirugias
+    Route::post("surgeries/index", [SurgerieController::class, "index"]);
+    Route::resource("surgeries", SurgerieController::class);
+
+    //rutas para los pagos de los servicios medicos(citas, vacunaciones, cirugias)
+    Route::post("payments/index", [PaymentController::class, "index"]);
+    Route::resource("payments", PaymentController::class);
 
     Route::resource("clientes", ClienteController::class);
 });
 
 Route::get('appointment-excel', [AppointmentController::class, 'downloadExcel']); // esta ruta es para descargar el excel de las citas
 Route::get('vaccination-excel', [VaccinationController::class, 'downloadExcel']); // esta ruta es para descargar el excel de las vacunaciones
+Route::get('surgerie-excel', [SurgerieController::class, 'downloadExcel']); // esta ruta es para descargar el excel de las cirugias
+Route::get('payments-excel',[PaymentController::class,'downloadExcel']); //

@@ -85,10 +85,10 @@ class VaccinationController extends Controller
         MedicalRecord::create([
             'pet_id' => $request->pet_id,
             'veterinarie_id' => $request->veterinarie_id,
-            'event_type' => 1, // 1=cita medica, 2=vacunacion, 3=cirugia
+            'event_type' => 2, // 1=cita medica, 2=vacunacion, 3=cirugia
             'vaccination_id' => $vaccionation->id,
             'event_date' => $request->input('vaccionation_date'),
-            'notes' => 'Cita médica creada',
+            'notes' => 'Vacunacion creada',
         ]);
 
         VaccinationPayment::create([

@@ -177,7 +177,7 @@ const dialogModelValueUpdate = val => {
                   v-model="event.extendedProps.pet.name"
                   label="Mascota"
                   placeholder=""
-                  :rules="[requiredValidator]"
+                  :rules="[requiredValidator]" readonly
                 />
               </VCol>
 
@@ -186,6 +186,7 @@ const dialogModelValueUpdate = val => {
                   v-model="event.extendedProps.veterinarie.full_name"
                   label="Veterinario"
                   placeholder="Nombre del Veterinario"
+                  readonly 
                 />
               </VCol>
             <!-- 👉 Nombre del día de la cita -->
@@ -194,6 +195,7 @@ const dialogModelValueUpdate = val => {
                   v-model="event.extendedProps.day"
                   label="Día"
                   placeholder="Día de la cita"
+                  readonly
                 />
                </VCol>
               <!-- 👉 Start date -->
@@ -205,6 +207,7 @@ const dialogModelValueUpdate = val => {
                   label="Hora de Atención"
                   placeholder="Select Date"
                   :config="startDateTimePickerConfig"
+                  readonly
                 />
               </VCol>
                <VCol cols="12">
@@ -213,6 +216,7 @@ const dialogModelValueUpdate = val => {
                   label="Monto"
                   placeholder="Monto de la cita"
                   type="number"
+                  readonly
                 />
                </VCol>
 
@@ -240,6 +244,7 @@ const dialogModelValueUpdate = val => {
                   v-model="event.extendedProps.description"
                   label="Razón:"
                   placeholder="Razón de la cita médica"
+                  readonly
                 />
               </VCol>
               <!-- 👉 Nota-->

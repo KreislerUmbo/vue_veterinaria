@@ -11,6 +11,7 @@ use App\Models\Appointment\AppointmentPayment;
 use App\Models\Appointment\AppointmentSchedule;
 use App\Models\MedicalRecord;
 use App\Models\Pets\Pet;
+use App\Models\Surgerie\Surgerie;
 use App\Models\Vaccination\Vaccination;
 use App\Models\Veterinarie\VeterinarieScheduleDay;
 use App\Models\Veterinarie\VeterinarieScheduleJoin;
@@ -47,8 +48,11 @@ class AppointmentController extends Controller
     public function filter(Request $request) // esta funcion es para filtrar la disponibilidad de los veterinarios por fecha y hora
     {
         $date_appointment = $request->input('date_appointment');
-        if(!$date_appointment){
-            $date_appointment=$request->vaccionation_date;
+        if (!$date_appointment) {
+            $date_appointment = $request->vaccionation_date; // en caso de que no venga la fecha de la cita medica, se toma la fecha de la vacunacion
+            if (!$date_appointment) {
+                $date_appointment = $request->surgerie_date; // en caso de que no venga la fecha de la cita medica ni de la vacunacion, se toma la fecha de la cirugia
+            }
         }
         $hour = $request->input('hour');
 
@@ -84,16 +88,26 @@ class AppointmentController extends Controller
                     ->whereHas('schedules', function ($q) use ($segment_time_join) { // filtrar por el segmento de tiempo o hora
                         $q->where('veterinarie_schedule_hour_id', $segment_time_join->veterinarie_schedule_hour_id);
                     })->first();
-                    // si no se encuentra una cita, verificar en las vacunaciones
-                    if (!$check) {
-                       $check=Vaccination::whereDate('vaccionation_date', $date_appointment)
+                // si no se encuentra una cita, verificar en las vacunaciones
+                if (!$check) {
+                    $check = Vaccination::whereDate('vaccionation_date', $date_appointment)
                         ->where('state', '<>', 2) // la cita no debe estar cancelada
                         ->where('veterinarie_id', $veterinarie_day->veterinarie_id) // filtrar por el veterinario
                         ->whereHas('schedules', function ($q) use ($segment_time_join) { // filtrar por el segmento de tiempo o hora
                             $q->where('veterinarie_schedule_hour_id', $segment_time_join->veterinarie_schedule_hour_id);
                         })->first();
-                    } 
 
+
+                    if (!$check) {
+                        // si se encuentra una cita o vacunacion, verificar en las cirugias
+                        $check = $check = Surgerie::whereDate('surgerie_date', $date_appointment)
+                            ->where('state', '<>', 2) // la cirugia no debe estar cancelada
+                            ->where('veterinarie_id', $veterinarie_day->veterinarie_id) // filtrar por el veterinario
+                            ->whereHas('schedules', function ($q) use ($segment_time_join) { // filtrar por el segmento de tiempo o hora
+                                $q->where('veterinarie_shedule_hour_id', $segment_time_join->veterinarie_schedule_hour_id);
+                            })->first();
+                    }
+                }
                 // formatear los segmentos de tiempo o hora
                 $segment_times_formats->push([
                     "id" => $segment_time_join->id,
@@ -325,7 +339,7 @@ class AppointmentController extends Controller
         // AppointmentSchedule::where('appointment_id', $appointment->id)->delete(); //delete es una funcion de laravel para eliminar registros
 
     }
-    
+
     /**
      * Remove the specified resource from storage.
      */
@@ -336,7 +350,7 @@ class AppointmentController extends Controller
             return response()->json(['message' =>  403]); // si la cita ya fue atendida no se puede eliminar
         }
 
-       $appointment->medical_record->delete(); // eliminar el registro medico relacionado a la cita
+        $appointment->medical_record->delete(); // eliminar el registro medico relacionado a la cita
         $appointment->delete();
 
         return response()->json(['message' => 'Cita eliminada exitosamente'], 200);
