@@ -314,7 +314,7 @@ definePage({
                     </VCol>
 
                     <VCol cols="4">
-                        <VTextarea label="Designación" rows="1" placeholder="Designancion" />
+                        <VTextarea label="Designación" rows="1" placeholder="Designancion" v-model="form.designation" />
                     </VCol>
 
                     <VCol cols="4">

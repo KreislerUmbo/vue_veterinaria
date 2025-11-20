@@ -207,6 +207,7 @@ const store = async () => {
     let formData = new FormData();
     formData.append("name", form.value.name);
     formData.append("surname", form.value.surname);
+
     if (form.value.type_document) {
         formData.append("type_document", form.value.type_document);
     }
@@ -310,7 +311,7 @@ definePage({
                     </VCol>
 
                     <VCol cols="4">
-                        <VTextarea label="Designación" rows="1" placeholder="Designancion" />
+                        <VTextarea label="Designación" rows="1" placeholder="Designancion" v-model="form.designation" />
                     </VCol>
 
                     <VCol cols="4">

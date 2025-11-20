@@ -47,7 +47,7 @@ Route::group([
     //rutas para los registros medicos
     Route::get("medical-records/calendar", [MedicalRecordController::class, "calendar"]);// calendario de registros medicos
     Route::put("medical-records/update_aux/{id}", [MedicalRecordController::class, "update_aux"]);// actualizar estado de cita y notas del registro medico que esta en el calendario
-    Route::put("medical-records/pet", [MedicalRecordController::class, "index"]);
+    Route::post("medical-records/pet", [MedicalRecordController::class, "index"]);
 
     //rutas para las vacunaciones
     Route::post("vaccinations/index", [VaccinationController::class, "index"]); 

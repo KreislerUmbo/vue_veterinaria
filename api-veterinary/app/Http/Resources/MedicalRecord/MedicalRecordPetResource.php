@@ -15,6 +15,9 @@ class MedicalRecordPetResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        date_default_timezone_set('America/Lima');
+        Carbon::setLocale('es');
+
         $resource = null;
         if ($this->resource->appointment_id) {
             $resource = $this->resource->appointment;
@@ -47,22 +50,29 @@ class MedicalRecordPetResource extends JsonResource
                     "name" => $this->resource->veterinarie->role->name,
                 ],
                 "designation" => $this->resource->veterinarie->designation,
+                "imagen" => env("APP_URL") . "storage/" . $this->resource->veterinarie->avatar,
             ],
 
-            "event_date" => Carbon::parse($this->event_date)->format('Y-m-d'),
+            "event_date" => Carbon::parse($this->resource->event_date)->format('Y-m-d'),
             "notes" => $this->resource->notes,
             "created_at" => $this->resource->created_at->diffForHumans(), //diffForHumans sirve para indicar el tiempo que paso ddesde que se creo el registro
             "event_type" => $this->event_type,
-
+            "nex_due_date" => $resource->nex_due_date ? Carbon::parse($resource->nex_due_date)->format("Y/m/d") : NULL,
+            "surgerie_type"=> $resource->surgerie_type,
             "appointment_id" => $this->resource->appointment_id,
             "vaccination_id" => $this->resource->vaccination_id,
             "surgerie_id" => $this->resource->surgerie_id,
-
+            "medical_notes"=>$resource->medical_notes,
+            "outcome"=>$resource->outcome,
+            "reason"=>$resource->reason,
+            
+            "outside" => $resource->outside,
             "state" => $resource->state,
             "amount" => $resource->amount,
             "state_pay" => $resource->state_pay,
             "payment_total" => $resource->payments->sum('amount'), //suma de todos los pagos realizados para ese servicio medico
-
+            "hour_start" => $hour_start,
+            "hour_end" => $hour_end,
         ];
     }
 }

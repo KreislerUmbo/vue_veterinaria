@@ -30,7 +30,7 @@ class PetsController extends Controller
                 });
             }
         })
-            ->orderBy("id", "desc")->paginate(5);
+            ->orderBy("id", "desc")->paginate(20);
         return response()->json([
             "pets" => PetsCollection::make($pets),
             "total_page" => $pets->lastPage(),

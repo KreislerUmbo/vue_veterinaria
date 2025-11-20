@@ -1,10 +1,11 @@
 <?php
+
 namespace App\Http\Controllers\MedicalRecord;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\MedicalRecord\Calendar\MedicalRecordCalendarCollection;
 use App\Http\Resources\MedicalRecord\Calendar\MedicalRecordCalendarResource;
-use App\Http\Resources\MedicalRecord\MedicalRecordPetResource;
+use App\Http\Resources\MedicalRecord\MedicalRecordPetCollection;
 use App\Http\Resources\PetsResource;
 use App\Models\Appointment\Appointment;
 use App\Models\MedicalRecord;
@@ -20,20 +21,19 @@ class MedicalRecordController extends Controller
      */
     public function index(Request $request)
     {
-        $pet_id=$request->pet_id;
-        $start_date=$request->start_date;
-        $end_date=$request->end_date;
-
-        $pet= Pet::findOrFail($pet_id);
-        $medical_records=MedicalRecord::where("pet_id",$pet_id)->
-                                        where(function($q) use($start_date,$end_date){
-                                            if($start_date && $end_date){
-                                                 $q->whereBetween("event_date", [Carbon::parse($start_date)->format("Y-m-d") . " 00:00:00", Carbon::parse($end_date)->format("Y-m-d") . " 23:59:59"]);
-                                            }
-                                        })->orderBy("id","desc")->get();
+        $pet_id = $request->pet_id;
+        $start_date = $request->start_date;
+        $end_date = $request->end_date;
+  
+        $pet = Pet::findOrFail($pet_id);
+        $medical_records = MedicalRecord::where("pet_id", $pet_id)->where(function ($q) use ($start_date, $end_date) {
+                if ($start_date && $end_date) {
+                    $q->whereBetween("event_date", [Carbon::parse($start_date)->format("Y-m-d") . " 00:00:00", Carbon::parse($end_date)->format("Y-m-d") . " 23:59:59"]);
+                }
+            })->orderBy("id", "desc")->get();
         return response()->json([
-            "pet"=> PetsResource::make($pet),
-            "historial_records"=>MedicalRecordPetResource::make($medical_records),
+            "pet" => PetsResource::make($pet),
+            "historial_records" => MedicalRecordPetCollection::make($medical_records),
         ]);
     }
 
@@ -50,7 +50,7 @@ class MedicalRecordController extends Controller
     {
         $medical_record = MedicalRecord::findOrFail($id);
 
-        if ($medical_record->appointment_id) {//si el registro medico tiene una cita asociada
+        if ($medical_record->appointment_id) { //si el registro medico tiene una cita asociada
             $medical_record->appointment->update([
                 'state' => $request->state, // 1=pendiente, 2=reprogramada, 3=atendida, 4=cancelada
             ]);
@@ -60,14 +60,14 @@ class MedicalRecordController extends Controller
                 'state' => $request->state, // 1=pendiente, 2=reprogramada, 3=atendida, 4=cancelada
             ]);
         }
-        if ($medical_record->surgerie_id) {//si el registro medico tiene una cirugia asociada
+        if ($medical_record->surgerie_id) { //si el registro medico tiene una cirugia asociada
             $medical_record->surgerie->update([
                 'state' => $request->state, // 1=pendiente, 2=reprogramada, 3=atendida, 4=cancelada
                 'outcome' => $request->notes, // resultado de la cirugia
             ]);
         }
 
-       // error_log($request->notes);
+        // error_log($request->notes);
         $medical_record->update([
             'notes' => $request->notes,
         ]);

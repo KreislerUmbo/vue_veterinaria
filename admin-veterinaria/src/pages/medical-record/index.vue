@@ -5,11 +5,56 @@ import avatar3 from '@images/avatars/avatar-3.png'
 import { VChip, VCol, VRow } from 'vuetify/components';
 
 
+const warning = ref(null);
+const error_exists = ref(null);
+const success = ref(null);
+
 const event_date = ref(null);
+const currentPage = ref(1);
 
-const search_medical_reord = ref(
 
-)
+const pet_selected = ref(null);
+const historial_records = ref([]);
+
+const list = async () => {
+
+    if (!select_pet.value) {
+        warning.value = "Necesita seleccionar una mascota para iniciar el proceso de búsqueda";
+        return;
+    }
+
+    let data = {
+        pet_id: select_pet.value.id,
+        start_date: event_date.value ? event_date.value.split("to")[0] : null,
+        end_date: event_date.value ? event_date.value.split("to")[1] : null,
+    }
+    const resp = await $api('/medical-records/pet?page=' + currentPage.value, {
+        method: 'POST',
+        body: data,
+        onResponseError({ response }) {
+            error_exists.value = response;
+            console.log(response);
+        }
+    })
+    warning.value = null;
+    error_exists.value = null;
+    console.log(resp);
+
+    pet_selected.value = resp.pet;
+    historial_records.value = resp.historial_records.data;
+}
+
+
+const search_medical_reord = () => {
+    list();
+}
+
+const reset=()=>{
+    pet_selected.value=null,
+    historial_records.value=[];
+    select_pet.value=[];
+    event_date.value=null;
+}
 
 //codigo para la busqueda de mascotas
 const loading = ref(false)
@@ -35,6 +80,16 @@ const querySelections = async (query) => {                      //funcion para b
         loading.value = false
     }, 500)
 }
+
+watch(search, query => {// vigila el cambio en el input de busqueda
+    if (query && query.length > 2) {// busca si el input tiene mas de 2 caracteres
+        querySelections(query)
+    } else {
+        items.value = [];
+    }
+    //query && query !== select.value && querySelections(query)
+})
+//fin de la busqueda de macota
 </script>
 <template>
     <div>
@@ -58,15 +113,21 @@ const querySelections = async (query) => {                      //funcion para b
                                         No se encontró la mascota
                                     </VListItemTitle>
                                 </VListItem>
-                                <VListItem>
-                                    <VBtn color="primary" block @click="dialog = true">
-                                        Registrar nueva mascota
-                                    </VBtn>
-                                </VListItem>
+
                             </div>
                         </template>
                     </VAutocomplete>
                 </VCol>
+
+                <VAlert type="warning" class="mt-3" v-if="warning">
+                    <strong>{{ warning }}</strong>
+                </VAlert>
+                <VAlert type="error" class="mt-3" v-if="error_exists">
+                    <strong>En el servidor hubo un error al momento de guardar los datos</strong>
+                </VAlert>
+                <VAlert type="success" class="mt-3" v-if="success">
+                    <strong>{{ success }}</strong>
+                </VAlert>
 
                 <VCol cols="4">
                     <AppDateTimePicker v-model="event_date" label="Fecha del servicio" placeholder="Select Fecha"
@@ -75,7 +136,7 @@ const querySelections = async (query) => {                      //funcion para b
                 </VCol>
 
                 <VCol cols="4">
-                    <VBtn color="info" class="mx-1" prepend-icon="ri-search-2-line" @click="search()">
+                    <VBtn color="info" class="mx-1" prepend-icon="ri-search-2-line" @click="search_medical_reord()">
                     </VBtn>
 
                     <VBtn color="secondary" prepend-icon="ri-restart-line" @click="reset()">
@@ -83,14 +144,13 @@ const querySelections = async (query) => {                      //funcion para b
                 </VCol>
             </VRow>
         </VCard>
-        <VRow class="my-2">
+        <VRow class="my-2" v-if="pet_selected">
             <VCol cols="4">
                 <VCard>
                     <VCardText class="text-center pt-12 pb-6">
                         <!-- 👉 Avatar -->
                         <VAvatar rounded="lg" :size="120" :color="'primary'" :variant="'tonal'">
-                            <VImg
-                                :src="'https://demos.pixinvent.com/materialize-vuejs-admin-template/demo-1/assets/avatar-3-DsWgWr0y.png'" />
+                            <VImg :src="pet_selected.photo" />
                             <!--<span v-else class="text-5xl font-weight-medium">
                                 {{ avatarText(props.userData.fullName) }}
                             </span>-->
@@ -98,12 +158,12 @@ const querySelections = async (query) => {                      //funcion para b
 
                         <!-- 👉 User fullName -->
                         <h5 class="text-h5 mt-4">
-                            ROcky
+                            {{ pet_selected.name }}
                         </h5>
 
                         <!-- 👉 Role chip -->
                         <VChip :color="'primary'" size="small" class="text-capitalize mt-4">
-                            Pastor Aleman
+                            {{ pet_selected.breed }}
                         </VChip>
                     </VCardText>
 
@@ -116,7 +176,7 @@ const querySelections = async (query) => {                      //funcion para b
 
                             <div>
                                 <h5 class="text-h5">
-                                    100
+                                    {{ pet_selected.n_appointment }}
                                 </h5>
                                 <span>Citas</span>
                             </div>
@@ -130,7 +190,7 @@ const querySelections = async (query) => {                      //funcion para b
 
                             <div>
                                 <h5 class="text-h5">
-                                    50
+                                    {{ pet_selected.n_vaccination }}
                                 </h5>
                                 <span> Vacunas</span>
                             </div>
@@ -143,9 +203,9 @@ const querySelections = async (query) => {                      //funcion para b
 
                             <div>
                                 <h5 class="text-h5">
-                                    50
+                                    {{ pet_selected.n_surgerie }}
                                 </h5>
-                                <span> Cirugías</span>
+                                <span>Cirugías</span>
                             </div>
                         </div>
                     </VCardText>
@@ -162,7 +222,7 @@ const querySelections = async (query) => {                      //funcion para b
                                     Mascota:
                                 </div>
                                 <div>
-                                    Rocky
+                                    {{ pet_selected.name }}
                                 </div>
                             </div>
                         </div>
@@ -173,7 +233,7 @@ const querySelections = async (query) => {                      //funcion para b
                                     Sexo:
                                 </div>
                                 <div>
-                                    Masculino
+                                    {{ pet_selected.gender == 'M' ? 'Macho' : 'Hembra' }}
                                 </div>
                             </div>
                         </div>
@@ -184,7 +244,7 @@ const querySelections = async (query) => {                      //funcion para b
                                     Especie:
                                 </div>
                                 <div>
-                                    Pator
+                                    {{ pet_selected.specie }}
                                 </div>
                             </div>
                         </div>
@@ -195,7 +255,7 @@ const querySelections = async (query) => {                      //funcion para b
                                     Raza:
                                 </div>
                                 <div>
-                                    Pator
+                                    {{ pet_selected.breed }}
                                 </div>
                             </div>
                         </div>
@@ -206,7 +266,7 @@ const querySelections = async (query) => {                      //funcion para b
                                     F. Nacimiento:
                                 </div>
                                 <div>
-                                    15/03/2025
+                                    {{ pet_selected.dirth_date.split('-').reverse().join('-') }}
                                 </div>
                             </div>
                         </div>
@@ -217,7 +277,7 @@ const querySelections = async (query) => {                      //funcion para b
                                     Peso:
                                 </div>
                                 <div>
-                                    15 Kg
+                                    {{ pet_selected.weight }} KG
                                 </div>
                             </div>
                         </div>
@@ -227,49 +287,56 @@ const querySelections = async (query) => {                      //funcion para b
                         </div>
                         <div class="d-flex flex-column gap-y-4">
                             <div class="d-flex align-center gap-x-2">
-                                <VIcon icon="ri-user-line" 
-                                size="24" />
+                                <VIcon icon="ri-user-line" size="24" />
                                 <div class="font-weight-medium">
                                     Nombres:
                                 </div>
                                 <div class="text-truncate">
-                                   Kreisler Umbo Ruiz
+                                    {{ pet_selected.owner.first_name + ' ' + pet_selected.owner.last_name }}
                                 </div>
                             </div>
                         </div>
                         <div class="d-flex flex-column gap-y-4">
                             <div class="d-flex align-center gap-x-2">
-                                <VIcon icon="ri-cellphone-fill" 
-                                size="24" />
+                                <VIcon icon="ri-cellphone-fill" size="24" />
                                 <div class="font-weight-medium">
                                     Telefóno:
                                 </div>
                                 <div class="text-truncate">
-                                  950 917 607
+                                    {{ pet_selected.owner.phone }}
                                 </div>
                             </div>
                         </div>
                         <div class="d-flex flex-column gap-y-4">
                             <div class="d-flex align-center gap-x-2">
-                                <VIcon icon="ri-passport-line" 
-                                size="24" />
+                                <VIcon icon="ri-passport-line" size="24" />
                                 <div class="font-weight-medium">
                                     Tipo Documento:
                                 </div>
                                 <div class="text-truncate">
-                                  DNI
+                                    {{ pet_selected.owner.type_document }}
                                 </div>
                             </div>
                         </div>
-                         <div class="d-flex flex-column gap-y-4">
+                        <div class="d-flex flex-column gap-y-4">
                             <div class="d-flex align-center gap-x-2">
-                                <VIcon icon="ri-id-card-line" 
-                                size="24" />
+                                <VIcon icon="ri-id-card-line" size="24" />
                                 <div class="font-weight-medium">
                                     Nro Documento:
                                 </div>
                                 <div class="text-truncate">
-                                  44359286
+                                    {{ pet_selected.owner.n_document }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex flex-column gap-y-4">
+                            <div class="d-flex align-center gap-x-2">
+                                <VIcon icon="ri-building-4-line" size="24" />
+                                <div class="font-weight-medium">
+                                    Dirección:
+                                </div>
+                                <div class="text-truncate">
+                                    {{ pet_selected.owner.address + ' ' + pet_selected.owner.city }}
                                 </div>
                             </div>
                         </div>
@@ -277,125 +344,167 @@ const querySelections = async (query) => {                      //funcion para b
                 </VCard>
             </VCol>
             <VCol cols="8">
-                <VCard title="Activity Timeline">
+                <VCard title="Servicios Realizados en el Tiempo">
                     <VCardText>
                         <VTimeline side="end" align="start" line-inset="9" truncate-line="start" density="compact">
-                            <!-- SECTION Timeline Item: Flight -->
-                            <VTimelineItem size="x-small" dot-color="primary">
-                                <!-- 👉 Header -->
-                                <div class="d-flex justify-space-between align-center flex-wrap mb-2">
-                                    <div class="app-timeline-title">
-                                       Cita Médica 18/11/2025
-                                       <VChip class="mx-3" color="warning">
-                                        Pendiente
-                                       </VChip>
+                            <template v-for="(historial_record, index) in historial_records" : key="index">
+
+                                <!-- SECTION Timeline Item: Citas medicas -->
+                                <VTimelineItem size="x-small" dot-color="primary" v-if="historial_record.event_type == 1">
+                                    <!-- 👉 Header -->
+                                    <div class="d-flex justify-space-between align-center flex-wrap mb-2">
+                                        <div class="app-timeline-title">
+                                            Cita Médica {{ historial_record.event_date.split('-').reverse().join('-') }}
+                                            <VChip class="mx-3" v-if="historial_record.state == 1" color="warning">
+                                                Pendiente</VChip>
+                                            <VChip class="mx-3" v-if="historial_record.state == 2" color="error">Cancelado
+                                            </VChip>
+                                            <VChip class="mx-3" v-if="historial_record.state == 3" color="success">
+                                                Atendido</VChip>
+                                        </div>
+                                        <span class="app-timeline-meta">{{ historial_record.created_at }}</span>
                                     </div>
-                                    <span class="app-timeline-meta">45 min ago</span>
-                                </div>
 
-                                <div class="app-timeline-text mt-3">
-                                    La atención inicia @10:00am hasta @11:00am
-                                    <br>
-                                    Costo: 150 PEN
-                                </div>
+                                    <div class="app-timeline-text mt-3">
+                                        <span class="app-timeline-meta"></span>
+                                        La atención inicia @{{ historial_record.hour_start }} hasta @{{
+                                        historial_record.hour_end }}
+                                        <br>
+                                        Costo: {{ historial_record.amount }} PEN
+                                        <br><br>
+                                        Notas Médicas:
+                                        {{ historial_record.reason }}
+                                            <br>
+                                        Resultado:
+                                         {{ historial_record.outcome }}
+                                    </div>
 
-                                <!-- 👉 Person -->
-                                <div class="d-flex justify-space-between align-center flex-wrap">
-                                    <!-- 👉 Avatar & Personal Info -->
-                                    <div class="d-flex align-center my-2">
-                                        <VAvatar size="32" class="me-2" :image="avatar1" />
-                                        <div class="d-flex flex-column">
-                                            <p class="text-sm font-weight-medium text-medium-emphasis mb-0">
-                                                Lester McCarthy (Veterinario)
-                                            </p>
-                                            <span class="text-sm">CEO of Pixinvent</span>
+                                    <!-- 👉 Person -->
+                                    <div class="d-flex justify-space-between align-center flex-wrap">
+                                        <!-- 👉 Avatar & Personal Info -->
+                                        <div class="d-flex align-center my-2">
+                                            <VAvatar size="32" class="me-2"
+                                                :image="historial_record.veterinarie.imagen" />
+                                            <div class="d-flex flex-column">
+                                                <p class="text-sm font-weight-medium text-medium-emphasis mb-0">
+                                                    {{ historial_record.veterinarie.full_name }}
+                                                </p>
+                                                <span class="text-sm">{{ historial_record.veterinarie.designation
+                                                    }}</span>
+                                            </div>
+                                        </div>                                    
+                                    </div>
+                                      <hr>
+                                </VTimelineItem>
+                                <!-- !SECTION -->
+                      
+                                <!-- SECTION Timeline Item: Vacunacione -->
+                                <VTimelineItem size="x-small" dot-color="warning" v-if="historial_record.event_type == 2">
+                                    <!-- 👉 Header -->
+                                    <div class="d-flex justify-space-between align-center flex-wrap mb-2">
+                                        <div class="app-timeline-title">
+                                            Vacunación {{ historial_record.event_date.split('-').reverse().join('-') }}
+                                            <VChip class="mx-3" color="warning" v-if="historial_record.state == 1">
+                                                Pendiente</VChip>
+                                            <VChip class="mx-3" color="error" v-if="historial_record.state == 2">Cancelado
+                                            </VChip>
+                                            <VChip class="mx-3" color="success" v-if="historial_record.state == 3">
+                                                Atendido</VChip>
+
+                                        </div>
+                                        <span class="app-timeline-meta">{{ historial_record.created_at }}</span>
+                                    </div>
+
+                                    <div class="app-timeline-text mt-3">
+                                        La atención inicia @{{ historial_record.hour_start }} hasta @{{
+                                        historial_record.hour_end }}
+                                        <br>
+                                        Costo: {{ historial_record.amount }} PEN
+                                        <br>
+                                        Lugar de atención:
+                                        {{ historial_record.outside == 0 ? 'Dentro de la veterinaria' : 'Fuera de la veterinaría' }}
+                                        <br>
+                                        Proxima Fecha de Vacunación:
+                                        {{ historial_record.nex_due_date }}
+                                                      <br><br>
+                                        Notas Médicas:
+                                        {{ historial_record.reason }}
+                                            <br>
+                                        Resultado:
+                                         {{ historial_record.outcome }}
+                                    </div>
+                                        
+                                    <!-- 👉 Person -->
+                                    <div class="d-flex justify-space-between align-center flex-wrap">
+                                        <!-- 👉 Avatar & Personal Info -->
+                                        <div class="d-flex align-center my-2">
+                                            <VAvatar size="32" class="me-2"  :image="historial_record.veterinarie.imagen" />
+                                            <div class="d-flex flex-column">
+                                                <p class="text-sm font-weight-medium text-medium-emphasis mb-0">
+                                                    {{ historial_record.veterinarie.full_name }}
+                                                </p>
+                                                <span class="text-sm">{{ historial_record.veterinarie.designation
+                                                    }}</span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </VTimelineItem>
-                            <!-- !SECTION -->
+                                    <hr>
+                                </VTimelineItem>
+                                <!-- !SECTION -->
 
-                            <!-- SECTION Timeline Item: Interview Schedule -->
-                            <VTimelineItem size="x-small" dot-color="warning">
-                                <!-- 👉 Header -->
-                                <div class="d-flex justify-space-between align-center flex-wrap mb-2">
-                                    <div class="app-timeline-title">
-                                         Vacunación 15/11/2025
-                                       <VChip class="mx-3" color="success">
-                                        Atendido
-                                       </VChip>
+                                <!-- SECTION Design Cirugias -->
+                                <VTimelineItem size="x-small" dot-color="success" v-if="historial_record.event_type == 3">
+                                    <!-- 👉 Header -->
+                                    <div class="d-flex justify-space-between align-center flex-wrap mb-2">
+                                        <div class="app-timeline-title">
+                                            Cirugía  {{ historial_record.event_date.split('-').reverse().join('-') }}
+                                            <VChip class="mx-3" v-if="historial_record.state == 1" color="warning">
+                                                Pendiente</VChip>
+                                            <VChip class="mx-3" v-if="historial_record.state == 2" color="error">Cancelado
+                                            </VChip>
+                                            <VChip class="mx-3" v-if="historial_record.state == 3" color="success">
+                                                Atendido</VChip>
+                                        </div>
+                                        <span class="app-timeline-meta">{{ historial_record.created_at }}</span>
                                     </div>
-                                    <span class="app-timeline-meta">45 min ago</span>
-                                </div>
 
-                                 <div class="app-timeline-text mt-3">
-                                    La atención inicia @08:00am hasta @13:00am
-                                    <br>
-                                    Costo: 50 PEN
-                                    <br>
-                                    Lugar:
-                                    Fuera de la Veterinaría
-                                    <br>
-                                    Proxima fecha Vacunacion:
-                                    21/12/2025
-                                </div>
+                                    <div class="app-timeline-text mt-3">
+                                     La atención inicia @{{ historial_record.hour_start }} hasta @{{
+                                        historial_record.hour_end }}
+                                        <br>
+                                        Costo: {{ historial_record.amount }} PEN
+                                        <br>
+                                        Lugar:
+                                       {{ historial_record.outside == 0 ? 'Dentro de la veterinaria' : 'Fuera de la veterianria' }}
+                                        <br>
+                                        Tipo de Cirugía:
+                                        {{ historial_record.surgerie_type }}
+                                        <br><br>
+                                        Notas Médicas:
+                                        {{ historial_record.medical_notes }}
+                                            <br>
+                                        Resultado:
+                                         {{ historial_record.outcome }}
+                                    </div>
 
-                                <!-- 👉 Person -->
-                                <div class="d-flex justify-space-between align-center flex-wrap">
-                                    <!-- 👉 Avatar & Personal Info -->
-                                    <div class="d-flex align-center my-2">
-                                        <VAvatar size="32" class="me-2" :image="avatar1" />
-                                        <div class="d-flex flex-column">
-                                            <p class="text-sm font-weight-medium text-medium-emphasis mb-0">
-                                                Lester McCarthy (Veterinario)
-                                            </p>
-                                            <span class="text-sm">CEO of Pixinvent</span>
+                                    <!-- 👉 Person -->
+                                    <div class="d-flex justify-space-between align-center flex-wrap">
+                                        <!-- 👉 Avatar & Personal Info -->
+                                        <div class="d-flex align-center my-2">
+                                            <VAvatar size="32" class="me-2"  :image="historial_record.veterinarie.imagen" />
+                                            <div class="d-flex flex-column">
+                                                <p class="text-sm font-weight-medium text-medium-emphasis mb-0">
+                                                    {{ historial_record.veterinarie.full_name }}
+                                                </p>
+                                                <span class="text-sm">{{ historial_record.veterinarie.designation
+                                                    }}</span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </VTimelineItem>
-                            <!-- !SECTION -->
-
-                            <!-- SECTION Design Review -->
-                            <VTimelineItem size="x-small" dot-color="success">
-                                <!-- 👉 Header -->
-                                <div class="d-flex justify-space-between align-center flex-wrap mb-2">
-                                    <div class="app-timeline-title">
-                                        Cirugía 11/11/2025
-                                       <VChip class="mx-3" color="success">
-                                        Atendido
-                                       </VChip>
-                                    </div>
-                                    <span class="app-timeline-meta">45 min ago</span>
-                                </div>
-
-                                <div class="app-timeline-text mt-3">
-                                  La atención inicia @08:00am hasta @13:00am
-                                  <br>
-                                    Costo: 50 PEN
-                                    <br>
-                                    Lugar:
-                                    Fuera de la Veterinaría
-                                    <br>
-                                    Tipo de Cirugía:
-                                    Traumatológica
-                                </div>
-
-                                <!-- 👉 Person -->
-                                <div class="d-flex justify-space-between align-center flex-wrap">
-                                    <!-- 👉 Avatar & Personal Info -->
-                                    <div class="d-flex align-center my-2">
-                                        <VAvatar size="32" class="me-2" :image="avatar1" />
-                                        <div class="d-flex flex-column">
-                                            <p class="text-sm font-weight-medium text-medium-emphasis mb-0">
-                                                Lester McCarthy (Veterinario)
-                                            </p>
-                                            <span class="text-sm">CEO of Pixinvent</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </VTimelineItem>
-                            <!-- !SECTION -->
+                                    <hr>
+                                </VTimelineItem>
+                                <!-- !SECTION -->
+                            </template>
                         </VTimeline>
                     </VCardText>
                 </VCard>
